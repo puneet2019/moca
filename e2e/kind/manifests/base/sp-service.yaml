@@ -1,0 +1,26 @@
+---
+# Headless service for SP StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: sp-headless
+  namespace: moca-e2e
+  labels:
+    app: storage-provider
+spec:
+  clusterIP: None
+  selector:
+    app: storage-provider
+  ports:
+    - name: grpc
+      port: 9033
+      targetPort: 9033
+    - name: gateway
+      port: 9333
+      targetPort: 9333
+    - name: p2p-external
+      port: 9933
+      targetPort: 9933
+    - name: metrics
+      port: 24367
+      targetPort: 24367

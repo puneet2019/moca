@@ -1,0 +1,70 @@
+---
+# Headless service for StatefulSet pod DNS resolution
+# Pods get DNS: validator-{i}.validator-headless.moca-e2e.svc.cluster.local
+apiVersion: v1
+kind: Service
+metadata:
+  name: validator-headless
+  namespace: moca-e2e
+  labels:
+    app: validator
+spec:
+  clusterIP: None
+  publishNotReadyAddresses: true
+  selector:
+    app: validator
+  ports:
+    - name: p2p
+      port: 26656
+      targetPort: 26656
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+    - name: api
+      port: 1317
+      targetPort: 1317
+    - name: address
+      port: 28750
+      targetPort: 28750
+    - name: evm-rpc
+      port: 8545
+      targetPort: 8545
+    - name: evm-ws
+      port: 8546
+      targetPort: 8546
+
+---
+# NodePort service targeting validator-0 for external test access
+# Maps to Kind's extraPortMappings for localhost access
+apiVersion: v1
+kind: Service
+metadata:
+  name: validator-nodeport
+  namespace: moca-e2e
+  labels:
+    app: validator
+spec:
+  type: NodePort
+  selector:
+    app: validator
+    statefulset.kubernetes.io/pod-name: validator-0
+  ports:
+    - name: rpc
+      port: 26657
+      targetPort: 26657
+      nodePort: 30657
+    - name: grpc
+      port: 9090
+      targetPort: 9090
+      nodePort: 30090
+    - name: api
+      port: 1317
+      targetPort: 1317
+      nodePort: 30317
+    - name: evm-rpc
+      port: 8545
+      targetPort: 8545
+      nodePort: 30545

@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: validator
+  namespace: moca-e2e
+  labels:
+    app: validator
+spec:
+  serviceName: validator-headless
+  replicas: 4
+  podManagementPolicy: Parallel
+  selector:
+    matchLabels:
+      app: validator
+  template:
+    metadata:
+      labels:
+        app: validator
+    spec:
+      terminationGracePeriodSeconds: 10
+      containers:
+        - name: mocad
+          image: mocachain/moca:e2e-local
+          imagePullPolicy: Never
+          command: ["mocad"]
+          args:
+            - start
+            - --home=/root/.mocad
+            - --keyring-backend=test
+            - --rpc.laddr=tcp://0.0.0.0:26657
+            - --rpc.unsafe=true
+            - --p2p.laddr=tcp://0.0.0.0:26656
+            - --grpc.address=0.0.0.0:9090
+            - --address=0.0.0.0:28750
+            - --api.enabled-unsafe-cors=true
+            - --json-rpc.address=0.0.0.0:8545
+            - --json-rpc.ws-address=0.0.0.0:8546
+            - --log_format=json
+          ports:
+            - name: rpc
+              containerPort: 26657
+            - name: p2p
+              containerPort: 26656
+            - name: grpc
+              containerPort: 9090
+            - name: api
+              containerPort: 1317
+            - name: address
+              containerPort: 28750
+            - name: evm-rpc
+              containerPort: 8545
+            - name: evm-ws
+              containerPort: 8546
+          readinessProbe:
+            httpGet:
+              path: /status
+              port: 26657
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            failureThreshold: 12
+          livenessProbe:
+            httpGet:
+              path: /status
+              port: 26657
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            failureThreshold: 6
+          resources:
+            requests:
+              cpu: 250m
+              memory: 512Mi
+            limits:
+              memory: 2Gi
+          volumeMounts:
+            - name: config
+              mountPath: /root/.mocad/config
+            - name: keyring
+              mountPath: /root/.mocad/keyring-test
+            - name: data
+              mountPath: /root/.mocad/data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 1Gi

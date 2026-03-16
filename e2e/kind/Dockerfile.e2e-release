@@ -1,0 +1,8 @@
+# syntax=docker/dockerfile:1
+# Builds a mocad image from a pre-built release binary.
+# Usage: docker build -f Dockerfile.e2e-release -t mocachain/moca:<tag> <extracted-tarball-dir>
+FROM debian:bullseye-slim
+RUN apt-get update && apt-get install -y ca-certificates jq curl && rm -rf /var/lib/apt/lists/*
+COPY bin/mocad /usr/local/bin/mocad
+RUN chmod +x /usr/local/bin/mocad
+ENTRYPOINT ["mocad"]
