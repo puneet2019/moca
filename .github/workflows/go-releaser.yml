@@ -76,6 +76,7 @@ jobs:
         run: |-
           echo 'GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}' > .release-env
           echo 'REPO_OWNER=${{ env.OWNER_LC }}' >> .release-env
+          echo 'GORELEASER_CURRENT_TAG=${{ github.ref_name }}' >> .release-env
 
       - name: Release Publish
         run: make release
