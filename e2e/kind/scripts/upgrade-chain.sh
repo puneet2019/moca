@@ -18,17 +18,21 @@ source "${SCRIPT_DIR}/lib.sh"
 
 : "${UPGRADE_NAME:?UPGRADE_NAME is required}"
 : "${UPGRADE_HEIGHT:?UPGRADE_HEIGHT is required}"
-: "${UPGRADE_MODE:?UPGRADE_MODE must be 'hardfork' or 'governance'}"
-: "${NEW_DOCKER_IMAGE:?NEW_DOCKER_IMAGE is required}"
+: "${UPGRADE_MODE:?UPGRADE_MODE must be 'hardfork', 'governance', or 'cosmovisor'}"
+
+# NEW_DOCKER_IMAGE is only required for non-cosmovisor modes
+if [ "${UPGRADE_MODE}" != "cosmovisor" ]; then
+    : "${NEW_DOCKER_IMAGE:?NEW_DOCKER_IMAGE is required}"
+fi
 
 log_info "=== Chain Upgrade ==="
 log_info "  Mode:   ${UPGRADE_MODE}"
 log_info "  Name:   ${UPGRADE_NAME}"
 log_info "  Height: ${UPGRADE_HEIGHT}"
-log_info "  Image:  ${NEW_DOCKER_IMAGE}"
+log_info "  Image:  ${NEW_DOCKER_IMAGE:-n/a (cosmovisor)}"
 
-# ── Governance mode ──────────────────────────────────────────────────────────
-_upgrade_governance() {
+# ── Shared: submit upgrade proposal and vote ─────────────────────────────────
+_submit_upgrade_proposal_and_vote() {
     local fees="200000000000000amoca"
 
     log_info "Submitting software-upgrade proposal..."
@@ -68,7 +72,7 @@ _upgrade_governance() {
       "plan": {
         "name": "${UPGRADE_NAME}",
         "height": "${UPGRADE_HEIGHT}",
-        "info": "E2E test upgrade"
+        "info": ""
       }
     }
   ],
@@ -132,7 +136,11 @@ PROPOSAL_EOF
             -y 2>&1 || true
         sleep 2
     done
+}
 
+# ── Governance mode ──────────────────────────────────────────────────────────
+_upgrade_governance() {
+    _submit_upgrade_proposal_and_vote
     log_info "Waiting for voting period to end and upgrade height ${UPGRADE_HEIGHT}..."
     _wait_for_upgrade_halt
 }
@@ -231,6 +239,40 @@ _update_validator_images() {
     log_success "Chain resumed after upgrade"
 }
 
+# ── Cosmovisor mode ───────────────────────────────────────────────────────────
+_upgrade_cosmovisor() {
+    _submit_upgrade_proposal_and_vote
+
+    log_info "Waiting for cosmovisor to handle upgrade at height ${UPGRADE_HEIGHT}..."
+
+    local max_wait=300
+    local elapsed=0
+
+    # Wait for chain to reach upgrade height — cosmovisor auto-restarts with new binary
+    while [ $elapsed -lt $max_wait ]; do
+        local height
+        height=$(get_block_height "http://localhost:26657" 2>/dev/null || echo "0")
+
+        # Chain has moved past upgrade height — cosmovisor did its job
+        if [ "$height" -ge "$((UPGRADE_HEIGHT + 1))" ] 2>/dev/null; then
+            log_success "Cosmovisor upgraded successfully! Chain at height ${height}"
+            return 0
+        fi
+
+        # Chain is at or near upgrade height — give cosmovisor time to swap
+        if [ "$height" -ge "$((UPGRADE_HEIGHT - 1))" ] 2>/dev/null; then
+            log_info "Chain at upgrade height (${height}), waiting for cosmovisor restart..."
+        fi
+
+        elapsed=$((elapsed + 3))
+        sleep 3
+    done
+
+    # Final check — wait for chain to be ready
+    wait_for_chain_ready "http://localhost:26657" 120
+    log_success "Chain resumed after cosmovisor upgrade"
+}
+
 # ── Main ─────────────────────────────────────────────────────────────────────
 case "${UPGRADE_MODE}" in
     governance)
@@ -239,8 +281,11 @@ case "${UPGRADE_MODE}" in
     hardfork)
         _upgrade_hardfork
         ;;
+    cosmovisor)
+        _upgrade_cosmovisor
+        ;;
     *)
-        log_error "Unknown UPGRADE_MODE: ${UPGRADE_MODE} (expected 'hardfork' or 'governance')"
+        log_error "Unknown UPGRADE_MODE: ${UPGRADE_MODE} (expected 'hardfork', 'governance', or 'cosmovisor')"
         exit 1
         ;;
 esac

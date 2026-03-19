@@ -65,4 +65,28 @@ if [ -n "${OLD_VERSION:-}" ]; then
     log_success "Old version image loaded into Kind cluster"
 fi
 
+# Build cosmovisor image if COSMOVISOR_MODE is set (for cosmovisor upgrade tests)
+if [ "${COSMOVISOR_MODE:-false}" = "true" ]; then
+    : "${OLD_VERSION:?OLD_VERSION is required for cosmovisor mode}"
+    : "${UPGRADE_NAME:?UPGRADE_NAME is required for cosmovisor mode}"
+
+    COSMOVISOR_IMAGE="${DOCKER_IMAGE}:e2e-cosmovisor"
+    log_info "Building cosmovisor image: ${COSMOVISOR_IMAGE}..."
+    log_info "  Old version: ${OLD_VERSION}"
+    log_info "  Upgrade name: ${UPGRADE_NAME}"
+
+    DOCKER_BUILDKIT=1 docker build \
+        --secret id=gitconfig,src="${_DOCKER_GITCONFIG}" \
+        --build-arg "OLD_GIT_REF=${OLD_VERSION}" \
+        --build-arg "UPGRADE_NAME=${UPGRADE_NAME}" \
+        -f "${E2E_DIR}/Dockerfile.e2e-cosmovisor" \
+        -t "${COSMOVISOR_IMAGE}" \
+        "${REPO_ROOT}"
+    log_success "Cosmovisor image built: ${COSMOVISOR_IMAGE}"
+
+    log_info "Loading cosmovisor image into Kind cluster..."
+    kind load docker-image "${COSMOVISOR_IMAGE}" --name "${KIND_CLUSTER_NAME}"
+    log_success "Cosmovisor image loaded into Kind cluster"
+fi
+
 log_success "=== Image build and load complete ==="
