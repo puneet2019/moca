@@ -164,6 +164,36 @@ fw_start_chain_from_version() {
     log_success "Chain running on old version: ${running_version}"
 }
 
+# Deploy chain with cosmovisor (old binary as genesis, new binary pre-staged for upgrade).
+fw_start_chain_cosmovisor() {
+    local old_version="$1"
+    local upgrade_name="$2"
+    log_info "=== Starting chain with cosmovisor (old=${old_version}, upgrade=${upgrade_name}) ==="
+
+    _FW_STARTED=true
+
+    # Setup Kind cluster
+    bash "${SCRIPTS_DIR}/setup-kind.sh"
+
+    # Build cosmovisor image (contains both old and new binaries)
+    COSMOVISOR_MODE=true \
+    OLD_VERSION="${old_version}" \
+    UPGRADE_NAME="${upgrade_name}" \
+        bash "${SCRIPTS_DIR}/build-images.sh"
+
+    # Deploy with cosmovisor image and cosmovisor mode
+    DEPLOY_IMAGE="${DOCKER_IMAGE}:e2e-cosmovisor" \
+    COSMOVISOR_MODE=true \
+        bash "${SCRIPTS_DIR}/deploy.sh"
+
+    # Wait for chain
+    wait_for_chain_ready "http://localhost:26657" 120
+
+    local running_version
+    running_version=$(exec_mocad version 2>/dev/null || echo "unknown")
+    log_success "Chain running with cosmovisor, version: ${running_version}"
+}
+
 # ── Upgrade ───────────────────────────────────────────────────────────────────
 
 fw_upgrade_chain() {
@@ -181,15 +211,17 @@ fw_upgrade_chain() {
     : "${name:?--name is required}"
     : "${mode:?--mode is required}"
 
-    # Default new image is the current build
-    new_image="${new_image:-${DOCKER_IMAGE}:${DOCKER_TAG}}"
+    # Default new image is the current build (not needed for cosmovisor mode)
+    if [ "$mode" != "cosmovisor" ]; then
+        new_image="${new_image:-${DOCKER_IMAGE}:${DOCKER_TAG}}"
+    fi
 
     # Auto-compute upgrade height if not specified
     if [ -z "$height" ]; then
         local current
         current=$(get_block_height "http://localhost:26657")
         # Give enough time for governance voting period (15s) + buffer
-        if [ "$mode" = "governance" ]; then
+        if [ "$mode" = "governance" ] || [ "$mode" = "cosmovisor" ]; then
             height=$((current + 40))
         else
             height=$((current + 20))
@@ -200,12 +232,12 @@ fw_upgrade_chain() {
     log_info "  Name:   ${name}"
     log_info "  Mode:   ${mode}"
     log_info "  Height: ${height}"
-    log_info "  Image:  ${new_image}"
+    log_info "  Image:  ${new_image:-n/a (cosmovisor)}"
 
     UPGRADE_NAME="${name}" \
     UPGRADE_HEIGHT="${height}" \
     UPGRADE_MODE="${mode}" \
-    NEW_DOCKER_IMAGE="${new_image}" \
+    NEW_DOCKER_IMAGE="${new_image:-}" \
         bash "${SCRIPTS_DIR}/upgrade-chain.sh"
 }
 

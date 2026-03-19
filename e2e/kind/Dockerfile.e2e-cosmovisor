@@ -1,0 +1,78 @@
+# syntax=docker/dockerfile:1
+# Build a cosmovisor-managed image with old (genesis) and new (upgrade) mocad binaries.
+# Cosmovisor auto-switches binaries at upgrade height — no kubectl image swap needed.
+#
+# Build args:
+#   OLD_GIT_REF   - Git ref for the old (genesis) binary (tag/branch/commit)
+#   UPGRADE_NAME  - Upgrade handler name (must match the governance proposal)
+
+# ── Stage 1: Build OLD mocad from git ref ─────────────────────────────────────
+FROM golang:1.23.6-bullseye AS builder-old
+
+ARG OLD_GIT_REF=main
+ARG REPO_URL=github.com/mocachain/moca
+
+ENV CGO_CFLAGS="-O -D__BLST_PORTABLE__"
+ENV CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__"
+
+WORKDIR /workspace
+
+RUN --mount=type=secret,id=gitconfig,target=/root/.gitconfig \
+    git clone "https://${REPO_URL}.git" . && \
+    git checkout "${OLD_GIT_REF}" && \
+    make build
+
+# ── Stage 2: Build NEW mocad from local source ───────────────────────────────
+FROM golang:1.23.6-bullseye AS builder-new
+
+ENV CGO_CFLAGS="-O -D__BLST_PORTABLE__"
+ENV CGO_CFLAGS_ALLOW="-O -D__BLST_PORTABLE__"
+
+WORKDIR /workspace
+COPY go.mod go.sum ./
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=secret,id=gitconfig,target=/root/.gitconfig \
+    go mod download
+
+COPY . .
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    --mount=type=secret,id=gitconfig,target=/root/.gitconfig \
+    make build
+
+# ── Stage 3: Install cosmovisor ──────────────────────────────────────────────
+FROM golang:1.23.6-bullseye AS cosmovisor
+
+RUN --mount=type=cache,target=/go/pkg/mod \
+    --mount=type=cache,target=/root/.cache/go-build \
+    go install cosmossdk.io/tools/cosmovisor/cmd/cosmovisor@v1.7.1
+
+# ── Stage 4: Final runtime image ─────────────────────────────────────────────
+FROM debian:bullseye-slim
+
+ARG UPGRADE_NAME=v1.2.0
+
+RUN apt-get update && apt-get install -y ca-certificates jq curl && rm -rf /var/lib/apt/lists/*
+
+# Cosmovisor binary
+COPY --from=cosmovisor /go/bin/cosmovisor /usr/local/bin/cosmovisor
+
+# Old binary at /usr/local/bin (for init-chain.sh genesis init)
+COPY --from=builder-old /workspace/build/mocad /usr/local/bin/mocad
+
+# Old binary at cosmovisor genesis path
+RUN mkdir -p /root/.mocad/cosmovisor/genesis/bin
+COPY --from=builder-old /workspace/build/mocad /root/.mocad/cosmovisor/genesis/bin/mocad
+
+# New binary at cosmovisor upgrade path
+RUN mkdir -p /root/.mocad/cosmovisor/upgrades/${UPGRADE_NAME}/bin
+COPY --from=builder-new /workspace/build/mocad /root/.mocad/cosmovisor/upgrades/${UPGRADE_NAME}/bin/mocad
+
+ENV DAEMON_NAME=mocad
+ENV DAEMON_HOME=/root/.mocad
+ENV DAEMON_ALLOW_DOWNLOAD_BINARIES=false
+ENV DAEMON_RESTART_AFTER_UPGRADE=true
+ENV DAEMON_POLL_INTERVAL=1s
+ENV UNSAFE_SKIP_BACKUP=true
+
+ENTRYPOINT ["cosmovisor"]

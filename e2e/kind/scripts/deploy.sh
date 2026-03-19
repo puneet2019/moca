@@ -158,6 +158,41 @@ kubectl apply -f "${MANIFESTS_DIR}/validator-services.yaml" -n "${K8S_NAMESPACE}
 
 # ── 10. Deploy per-validator StatefulSets ───────────────────────────────────
 log_info "Deploying validator StatefulSets..."
+
+# Cosmovisor mode: use cosmovisor as entrypoint instead of mocad
+if [ "${COSMOVISOR_MODE:-false}" = "true" ]; then
+    CONTAINER_COMMAND='["cosmovisor"]'
+    CONTAINER_FIRST_ARG="run"
+    COSMOVISOR_ENV=$(cat <<'ENVEOF'
+            - name: DAEMON_NAME
+              value: "mocad"
+            - name: DAEMON_HOME
+              value: "/root/.mocad"
+            - name: DAEMON_ALLOW_DOWNLOAD_BINARIES
+              value: "false"
+            - name: DAEMON_RESTART_AFTER_UPGRADE
+              value: "true"
+            - name: DAEMON_POLL_INTERVAL
+              value: "1s"
+            - name: UNSAFE_SKIP_BACKUP
+              value: "true"
+ENVEOF
+    )
+    COSMOVISOR_INIT_CMD="cp -a /root/.mocad/cosmovisor/. /cosmovisor-data/ 2>/dev/null || true"
+    COSMOVISOR_VOLUME_MOUNT='            - name: cosmovisor-data
+              mountPath: /root/.mocad/cosmovisor'
+    COSMOVISOR_VOLUME='        - name: cosmovisor-data
+          emptyDir: {}'
+    log_info "  Cosmovisor mode enabled"
+else
+    CONTAINER_COMMAND='["mocad"]'
+    CONTAINER_FIRST_ARG=""
+    COSMOVISOR_ENV=""
+    COSMOVISOR_INIT_CMD=""
+    COSMOVISOR_VOLUME_MOUNT=""
+    COSMOVISOR_VOLUME=""
+fi
+
 for i in $(seq 0 $((NUM_VALIDATORS - 1))); do
     log_info "  Deploying StatefulSet validator-${i}..."
 
@@ -199,6 +234,7 @@ spec:
               if [ ! -f /root/.mocad/data/priv_validator_state.json ]; then
                 echo '{"height":"0","round":0,"step":0}' > /root/.mocad/data/priv_validator_state.json
               fi
+              ${COSMOVISOR_INIT_CMD}
               echo "Config init done for validator-${i}"
           volumeMounts:
             - name: config-readonly
@@ -213,12 +249,14 @@ spec:
               mountPath: /root/.mocad/keyring-test
             - name: data
               mountPath: /root/.mocad/data
+${COSMOVISOR_VOLUME_MOUNT}
       containers:
         - name: mocad
           image: ${DEPLOY_IMAGE}
           imagePullPolicy: Never
-          command: ["mocad"]
+          command: ${CONTAINER_COMMAND}
           args:
+$([ -n "${CONTAINER_FIRST_ARG}" ] && echo "            - ${CONTAINER_FIRST_ARG}")
             - start
             - --home=/root/.mocad
             - --keyring-backend=test
@@ -246,6 +284,8 @@ spec:
               containerPort: 8545
             - name: evm-ws
               containerPort: 8546
+$([ -n "${COSMOVISOR_ENV}" ] && echo "          env:
+${COSMOVISOR_ENV}")
           readinessProbe:
             httpGet:
               path: /status
@@ -273,6 +313,7 @@ spec:
               mountPath: /root/.mocad/keyring-test
             - name: data
               mountPath: /root/.mocad/data
+${COSMOVISOR_VOLUME_MOUNT}
       volumes:
         - name: config-readonly
           configMap:
@@ -284,6 +325,7 @@ spec:
           emptyDir: {}
         - name: keyring
           emptyDir: {}
+${COSMOVISOR_VOLUME}
   volumeClaimTemplates:
     - metadata:
         name: data

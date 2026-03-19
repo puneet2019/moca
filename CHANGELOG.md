@@ -39,6 +39,7 @@ Ref: https://keepachangelog.com/en/1.0.0/
 
 ### Features
 
+- (e2e) [#104](https://github.com/mocachain/moca/pull/104) Add cosmovisor upgrade mode for Kind e2e tests
 - (proto) [#67](https://github.com/mocachain/moca/pull/67) Publish protos to BSR under moca org
 
 ### Improvements
