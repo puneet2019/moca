@@ -53,10 +53,7 @@ jobs:
           build-args: GIT_REF=${{ env.OLD_VERSION }}
           tags: ${{ env.DOCKER_IMAGE }}:${{ env.OLD_VERSION }}
           load: true
-          cache-from: type=gha,scope=e2e-old
-          cache-to: type=gha,mode=max,scope=e2e-old
-          secrets: |
-            gitconfig=/tmp/gitconfig
+          no-cache: true
 
       - name: Save images
         run: |
