@@ -5,6 +5,9 @@ PROJECT_ROOT=$(cd "${SCRIPT_DIR}/../.." && pwd)
 local_env=${SCRIPT_DIR}/.local
 
 source ${SCRIPT_DIR}/.env
+# Backward compatible with older .env files that only defined STOREAGE_* (typo).
+STORAGE_PROVIDER_ADDRESS_PORT_START="${STORAGE_PROVIDER_ADDRESS_PORT_START:-${STOREAGE_PROVIDER_ADDRESS_PORT_START:-9033}}"
+STOREAGE_PROVIDER_ADDRESS_PORT_START="${STOREAGE_PROVIDER_ADDRESS_PORT_START:-$STORAGE_PROVIDER_ADDRESS_PORT_START}"
 
 # Silent mode flag (enabled by default to reduce terminal output noise)
 QUIET_MODE=true
@@ -88,6 +91,7 @@ function init() {
 	log_info "Starting initialization of ${sp_size} storage providers"
 	for ((i = 0; i < ${sp_size}; i++)); do
 		execute_quiet "mkdir -p ${local_env}/sp${i}" "${INIT_LOG}" "Create SP${i} directory"
+		execute_with_mode "${bin} init sp${i}-local --chain-id \"${CHAIN_ID}\" --default-denom \"${STAKING_BOND_DENOM}\" --home ${local_env}/sp${i}" "${INIT_LOG}" "Initialize SP${i} chain config (required before spgentx)"
 		if [ "$i" -eq 0 ]; then
 			log_info "Importing main SP preset keys"
 			execute_with_mode "${bin} keys import sp0 ${sp0_prikey} --secp256k1-private-key --keyring-backend test --home ${local_env}/sp${i}" "${KEYGEN_LOG}" "Import SP0 operator key"
@@ -278,7 +282,7 @@ function generate_genesis() {
 		# sed -i -e "s/\"voting_period\": \"30s\"/\"voting_period\": \"5s\"/g" ${local_env}/validator${i}/config/genesis.json
 		sed -i -e "s/\"redundant_data_chunk_num\": 4/\"redundant_data_chunk_num\": 1/g" ${local_env}/validator${i}/config/genesis.json
 		sed -i -e "s/\"redundant_parity_chunk_num\": 2/\"redundant_parity_chunk_num\": 1/g" ${local_env}/validator${i}/config/genesis.json
-		sed -i -e "s/log_level = \"info\"/\log_level= \"debug\"/g" ${local_env}/validator${i}/config/config.toml
+		sed -i -e "s/log_level = \"info\"/log_level = \"debug\"/g" ${local_env}/validator${i}/config/config.toml
 		#echo -e '[payment-check]\nenabled = true\ninterval = 1' >> ${local_env}/validator${i}/config/app.toml
 		sed -i -e "s/cors_allowed_origins = \[\]/cors_allowed_origins = \[\"*\"\]/g" ${local_env}/validator${i}/config/config.toml
 		sed -i -e "s#node = \"tcp://localhost:26657\"#node = \"tcp://localhost:$((${VALIDATOR_RPC_PORT_START} + ${i}))\"#g" ${local_env}/validator${i}/config/client.toml
@@ -307,6 +311,8 @@ function start() {
 		execute_quiet "mkdir -p ${local_env}/validator${i}/logs" "${START_LOG}" "Create validator${i} log directory"
 		log_info "Starting validator node ${i}"
 
+		local evm_http_port=$((${EVM_SERVER_PORT_START} + ${i} * 2))
+		local evm_ws_port=$((${EVM_SERVER_PORT_START} + 1 + ${i} * 2))
 		local start_cmd="nohup \"${bin}\" start --home ${local_env}/validator${i} \
 			--keyring-backend test \
 			--api.enabled-unsafe-cors true \
@@ -316,8 +322,8 @@ function start() {
 			--p2p.external-address 127.0.0.1:$((${VALIDATOR_P2P_PORT_START} + ${i})) \
 			--rpc.laddr tcp://0.0.0.0:$((${VALIDATOR_RPC_PORT_START} + ${i})) \
 			--rpc.unsafe true \
-			--json-rpc.address 0.0.0.0:8545 \
-			--json-rpc.ws-address 0.0.0.0:8546 \
+			--json-rpc.address 0.0.0.0:${evm_http_port} \
+			--json-rpc.ws-address 0.0.0.0:${evm_ws_port} \
 			--log_format json >${local_env}/validator${i}/logs/node.log 2>&1 &"
 
 		execute_with_mode "$start_cmd" "${START_LOG}" "Start validator${i} node process"
@@ -413,7 +419,11 @@ function generate_sp_genesis {
 
 	rm -rf ${local_env}/gensptx
 	mkdir -p ${local_env}/gensptx
+	# SP gentx must reference the first validator RPC (genesis is built from validator0); using
+	# VALIDATOR_RPC_PORT_START+i breaks when SIZE=1 but sp_size>1 (no node on 26658+).
+	SP_GENTX_RPC_PORT=$((${VALIDATOR_RPC_PORT_START} + 0))
 	for ((i = 0; i < ${sp_size}; i++)); do
+		mkdir -p "${local_env}/sp${i}/config"
 		cp ${local_env}/validator0/config/genesis.json ${local_env}/sp${i}/config/
 		spoperator_addr=("$(${bin} keys show sp${i} -a --keyring-backend test --home ${local_env}/sp${i})")
 		spfund_addr=("$(${bin} keys show sp${i}_fund -a --keyring-backend test --home ${local_env}/sp${i})")
@@ -440,8 +450,8 @@ function generate_sp_genesis {
 			--moniker="sp${i}" \
 			--details="detail_sp${i}" \
 			--website="http://website" \
-			--endpoint="http://127.0.0.1:$((${STOREAGE_PROVIDER_ADDRESS_PORT_START} + ${i}))" \
-			--node tcp://localhost:$((${VALIDATOR_RPC_PORT_START} + ${i})) \
+			--endpoint="http://127.0.0.1:$((${STORAGE_PROVIDER_ADDRESS_PORT_START} + ${i}))" \
+			--node tcp://localhost:${SP_GENTX_RPC_PORT} \
 			--node-id "sp${i}" \
 			--ip 127.0.0.1 \
 			--gas "" \
