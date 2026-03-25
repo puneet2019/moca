@@ -22,6 +22,7 @@ import (
 	utiltx "github.com/evmos/evmos/v12/testutil/tx"
 	"github.com/evmos/evmos/v12/utils"
 	"github.com/evmos/evmos/v12/x/evm/precompiles/storageprovider"
+	evmtypes "github.com/evmos/evmos/v12/x/evm/types"
 	sptypes "github.com/evmos/evmos/v12/x/sp/types"
 )
 
@@ -40,7 +41,15 @@ func TestPrecompileTestSuite(t *testing.T) {
 func (s *PrecompileTestSuite) SetupTest() {
 	checkTx := false
 	chainID := utils.TestnetChainID + "-1"
-	s.app = app.EthSetup(checkTx, func(app *app.Evmos, genesis simapp.GenesisState) simapp.GenesisState { return genesis })
+	s.app = app.EthSetup(checkTx, func(app *app.Evmos, genesis simapp.GenesisState) simapp.GenesisState {
+		evmGenesis := evmtypes.DefaultGenesisState()
+		if bz := genesis[evmtypes.ModuleName]; len(bz) > 0 {
+			app.AppCodec().MustUnmarshalJSON(bz, evmGenesis)
+		}
+		evmGenesis.Params.EnableCall = true
+		genesis[evmtypes.ModuleName] = app.AppCodec().MustMarshalJSON(evmGenesis)
+		return genesis
+	})
 
 	// initialize context, then prepare a valid proposer/validator for EVM coinbase resolution
 	s.ctx = s.app.BaseApp.NewContext(checkTx)
