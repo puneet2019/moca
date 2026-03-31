@@ -150,7 +150,6 @@ import (
 
 	ethante "github.com/evmos/evmos/v12/app/ante/evm"
 	"github.com/evmos/evmos/v12/app/upgrades"
-	v2_0_0 "github.com/evmos/evmos/v12/app/upgrades/v2_0_0"
 	"github.com/evmos/evmos/v12/encoding"
 	servercfg "github.com/evmos/evmos/v12/server/config"
 	srvflags "github.com/evmos/evmos/v12/server/flags"
@@ -1560,10 +1559,10 @@ func (app *Evmos) setupUpgradeHandlers() {
 		return app.mm.RunMigrations(ctx, app.configurator, fromVM)
 	})
 
-	app.UpgradeKeeper.SetUpgradeHandler(
-		v2_0_0.UpgradeName,
-		v2_0_0.CreateUpgradeHandler(app.mm, app.configurator),
-	)
+	app.UpgradeKeeper.SetUpgradeHandler("v2.0.0", func(ctx context.Context, _ upgradetypes.Plan, fromVM module.VersionMap) (module.VersionMap, error) {
+		// noop
+		return app.mm.RunMigrations(ctx, app.configurator, fromVM)
+	})
 
 	// testnet only upgrade Handlers
 	app.UpgradeKeeper.SetUpgradeHandler(
@@ -1571,7 +1570,12 @@ func (app *Evmos) setupUpgradeHandlers() {
 		upgrades.TestnetGovParamFix(&app.GovKeeper, app.EvmKeeper, app.mm, app.configurator),
 	)
 
-	if upgradeInfo.Name == v2_0_0.UpgradeName && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
-		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, v2_0_0.StoreUpgrades))
+	storeUpgrades := &storetypes.StoreUpgrades{
+		Added:   []string{},
+		Deleted: []string{},
+	}
+
+	if upgradeInfo.Name == "v2.0.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
+		app.SetStoreLoader(upgradetypes.UpgradeStoreLoader(upgradeInfo.Height, storeUpgrades))
 	}
 }
