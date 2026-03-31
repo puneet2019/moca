@@ -735,12 +735,6 @@
       ],
       "send_enabled": []
     },
-    "bridge": {
-      "params": {
-        "bsc_transfer_out_relayer_fee": "780000000000000",
-        "bsc_transfer_out_ack_relayer_fee": "0"
-      }
-    },
     "capability": {
       "index": "1",
       "owners": []
@@ -964,12 +958,6 @@
           }
         },
         {
-          "msg_type_url": "/moca.bridge.MsgUpdateParams",
-          "fixed_type": {
-            "fixed_gas": "0"
-          }
-        },
-        {
           "msg_type_url": "/moca.sp.MsgUpdateParams",
           "fixed_type": {
             "fixed_gas": "0"
@@ -1109,12 +1097,6 @@
         },
         {
           "msg_type_url": "/cosmos.staking.v1beta1.MsgUndelegate",
-          "fixed_type": {
-            "fixed_gas": "1200"
-          }
-        },
-        {
-          "msg_type_url": "/moca.bridge.MsgTransferOut",
           "fixed_type": {
             "fixed_gas": "1200"
           }
