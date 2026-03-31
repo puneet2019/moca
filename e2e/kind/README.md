@@ -205,6 +205,20 @@ make e2e-kind-cleanup
 | Upgrade handler applied | `mocad query upgrade applied` confirms execution |
 | Token transfers post-upgrade | Bank send works with the new binary |
 
+### Comprehensive upgrade (`tests/test_upgrade_comprehensive.sh`)
+
+Drop-in modules under `tests/modules/mod_*.sh` are auto-loaded. They register randomized pre/post-upgrade
+transactions and post-upgrade verification hooks.
+
+| Module | Role |
+|--------|------|
+| `mod_bank.sh` | Bank sends and balance checks |
+| `mod_staking.sh` | Staking operations |
+| `mod_gov.sh` | Governance proposals |
+| `mod_distribution.sh` | Distribution queries |
+| `mod_evm.sh` | EVM transfers and ERC20 |
+| `mod_validator.sh` | RPC health, sync status, voting power, block production |
+
 ## Configuration
 
 Edit `e2e.env` to change:
