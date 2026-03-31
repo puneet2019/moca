@@ -106,7 +106,6 @@ import (
 	govkeeper "github.com/cosmos/cosmos-sdk/x/gov/keeper"
 	govtypes "github.com/cosmos/cosmos-sdk/x/gov/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
-	"github.com/cosmos/cosmos-sdk/x/group"
 	minttypes "github.com/cosmos/cosmos-sdk/x/mint/types"
 	"github.com/cosmos/cosmos-sdk/x/params"
 	paramsclient "github.com/cosmos/cosmos-sdk/x/params/client"
@@ -383,7 +382,6 @@ func NewEvmos(
 		govtypes.StoreKey, paramstypes.StoreKey, upgradetypes.StoreKey,
 		evidencetypes.StoreKey, capabilitytypes.StoreKey, consensusparamtypes.StoreKey,
 		feegrant.StoreKey, crisistypes.StoreKey,
-		group.StoreKey,
 		crosschaintypes.StoreKey,
 		gashubtypes.StoreKey,
 		spmoduletypes.StoreKey,
@@ -1192,6 +1190,7 @@ func (app *Evmos) BlockedAccountAddrs() map[string]bool {
 		evmostypes.DistributionAddress,
 		evmostypes.SlashingAddress,
 		evmostypes.EvidenceAddress,
+		evmostypes.DeprecatedEpochsAddress,
 		evmostypes.AuthzAddress,
 		evmostypes.FeemarketAddress,
 		evmostypes.PaymentAddress,
@@ -1507,7 +1506,7 @@ func (app *Evmos) setupUpgradeHandlers() {
 
 	storeUpgrades := &storetypes.StoreUpgrades{
 		Added:   []string{},
-		Deleted: []string{"epochs", "oracle", "bridge"},
+		Deleted: []string{"epochs", "oracle", "bridge", "group"},
 	}
 
 	if upgradeInfo.Name == "v2.0.0" && !app.UpgradeKeeper.IsSkipHeight(upgradeInfo.Height) {
