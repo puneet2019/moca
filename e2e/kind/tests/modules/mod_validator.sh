@@ -17,11 +17,19 @@ _validator_test_rpc_accessible() {
 }
 
 _validator_test_sync_status() {
-    local n i catching_up
+    local n i catching_up deadline
     n=$(_validator_count)
     for ((i = 0; i < n; i++)); do
-        catching_up=$(kind_fetch_rpc_status "$i" | jq -r '.result.sync_info.catching_up // "true"' 2>/dev/null || echo "true")
-        assert_eq "$catching_up" "false" "validator-${i} should not be catching up"
+        deadline=$(($(date +%s) + 90))
+        while true; do
+            catching_up=$(kind_fetch_rpc_status "$i" | jq -r '.result.sync_info.catching_up // "true"' 2>/dev/null || echo "true")
+            [ "$catching_up" = "false" ] && break
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+                assert_eq "$catching_up" "false" "validator-${i} should not be catching up"
+                return 1
+            fi
+            sleep 5
+        done
     done
 }
 
