@@ -225,9 +225,14 @@ fw_upgrade_chain() {
 fw_run_test() {
     local name="$1"
     local func="$2"
+    local rc
 
     echo -n "  [TEST] ${name}... "
-    if $func; then
+    # Do not use `if $func`: bash disables set -e inside functions invoked as if-conditions,
+    # so assertions would not fail the test.
+    $func
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
         log_success "PASS"
         _FW_PASS=$((_FW_PASS + 1))
     else
