@@ -15,6 +15,7 @@ E2E_DIR=$(cd -- "${FW_DIR}/.." && pwd)
 SCRIPTS_DIR="${E2E_DIR}/scripts"
 
 # Source shared helpers
+# shellcheck source=/dev/null
 source "${SCRIPTS_DIR}/lib.sh"
 
 # ── State ─────────────────────────────────────────────────────────────────────

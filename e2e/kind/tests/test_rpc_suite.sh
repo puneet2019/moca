@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # RPC + staking parity suite (moca-devcontainer test/validator/RPC/rpc.sh + check-validators balances/validators).
 
+# shellcheck source=/dev/null
 source "$(dirname "$0")/../framework/framework.sh"
 fw_init
 

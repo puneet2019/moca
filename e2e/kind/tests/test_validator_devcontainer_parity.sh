@@ -3,6 +3,7 @@
 # For each validator pod: Running, RPC /status, not catching_up, voting_power > 0,
 # then block production monitoring (CHECK_INTERVAL, MAX_WAIT, MIN_BLOCKS — same defaults as devcontainer).
 
+# shellcheck source=/dev/null
 source "$(dirname "$0")/../framework/framework.sh"
 fw_init
 
