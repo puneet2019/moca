@@ -138,6 +138,7 @@ import (
 	icahosttypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/host/types"
 	icatypes "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts/types"
 	ibctransfer "github.com/cosmos/ibc-go/v10/modules/apps/transfer"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v10/modules/apps/transfer/keeper"
 
 	ethante "github.com/evmos/evmos/v12/app/ante/evm"
 	"github.com/evmos/evmos/v12/app/upgrades"
@@ -171,9 +172,6 @@ import (
 	"github.com/evmos/evmos/v12/x/erc20"
 	erc20keeper "github.com/evmos/evmos/v12/x/erc20/keeper"
 	erc20types "github.com/evmos/evmos/v12/x/erc20/types"
-	// NOTE: override ICS20 keeper to support IBC transfers of ERC20 tokens
-	"github.com/evmos/evmos/v12/x/ibc/transfer"
-	transferkeeper "github.com/evmos/evmos/v12/x/ibc/transfer/keeper"
 
 	// Force-load the tracer engines to trigger registration due to Go-Ethereum v1.10.15 changes
 	_ "github.com/ethereum/go-ethereum/eth/tracers/js"
@@ -291,7 +289,7 @@ type Evmos struct {
 	IBCKeeper             *ibckeeper.Keeper // IBC Keeper must be a pointer in the app, so we can SetRouter on it correctly
 	ICAHostKeeper         icahostkeeper.Keeper
 	EvidenceKeeper        evidencekeeper.Keeper
-	TransferKeeper        transferkeeper.Keeper
+	TransferKeeper        ibctransferkeeper.Keeper
 	ConsensusParamsKeeper consensusparamkeeper.Keeper
 
 	SpKeeper           spmodulekeeper.Keeper
@@ -560,17 +558,15 @@ func NewEvmos(
 		),
 	)
 
-	app.TransferKeeper = transferkeeper.NewKeeper(
+	app.TransferKeeper = ibctransferkeeper.NewKeeper(
 		appCodec, runtime.NewKVStoreService(keys[ibctransfertypes.StoreKey]), app.GetSubspace(ibctransfertypes.ModuleName),
 		app.IBCKeeper.ChannelKeeper, // ICS4 Wrapper: claims IBC middleware
 		app.IBCKeeper.ChannelKeeper, bApp.MsgServiceRouter(),
 		app.AccountKeeper, app.BankKeeper,
-		app.Erc20Keeper, // Add ERC20 Keeper for ERC20 transfers
 		authAddr,
 	)
 
-	// Override the ICS20 app module
-	transferModule := transfer.NewAppModule(app.TransferKeeper)
+	transferModule := ibctransfer.NewAppModule(app.TransferKeeper)
 
 	// Create the app.ICAHostKeeper
 	app.ICAHostKeeper = icahostkeeper.NewKeeper(
@@ -590,7 +586,7 @@ func NewEvmos(
 	// create IBC module from top to bottom of stack
 	var transferStack porttypes.IBCModule
 
-	transferStack = transfer.NewIBCModule(app.TransferKeeper)
+	transferStack = ibctransfer.NewIBCModule(app.TransferKeeper)
 	transferStack = erc20.NewIBCMiddleware(app.Erc20Keeper, transferStack)
 
 	// Create static IBC router, add transfer route, then set and seal it
@@ -753,7 +749,7 @@ func NewEvmos(
 					paramsclient.ProposalHandler,
 				},
 			),
-			ibctransfertypes.ModuleName: transfer.AppModuleBasic{AppModuleBasic: &ibctransfer.AppModuleBasic{}},
+			ibctransfertypes.ModuleName: ibctransfer.AppModuleBasic{},
 		},
 	)
 	app.BasicModuleManager.RegisterLegacyAminoCodec(cdc)

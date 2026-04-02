@@ -16,6 +16,7 @@ import (
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
+	ibctransferkeeper "github.com/cosmos/ibc-go/v10/modules/apps/transfer/keeper"
 
 	"cosmossdk.io/log"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -104,4 +105,27 @@ func TestEvmosExport(t *testing.T) {
 
 	_, err = app2.ExportAppStateAndValidators(false, []string{}, []string{})
 	require.NoError(t, err, "ExportAppStateAndValidators should not have an error")
+}
+
+func TestTransferKeeperUsesUpstreamIBCTransferKeeper(t *testing.T) {
+	db := dbm.NewMemDB()
+	chainID := utils.MainnetChainID + "-1"
+	baseOpts := simtestutil.NewAppOptionsWithFlagHome(DefaultNodeHome)
+	appOpts := flaggedAppOptions{
+		base: baseOpts,
+		overrides: map[string]interface{}{
+			crisis.FlagSkipGenesisInvariants: true,
+		},
+	}
+
+	app := NewEvmos(
+		log.NewNopLogger(),
+		db, nil, true, map[int64]bool{},
+		DefaultNodeHome, 0,
+		servercfg.NewDefaultAppConfig(evmostypes.AttoEvmos),
+		appOpts,
+		baseapp.SetChainID(chainID),
+	)
+
+	require.IsType(t, ibctransferkeeper.Keeper{}, app.TransferKeeper)
 }
