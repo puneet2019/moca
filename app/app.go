@@ -128,7 +128,6 @@ import (
 	porttypes "github.com/cosmos/ibc-go/v10/modules/core/05-port/types"
 	ibcexported "github.com/cosmos/ibc-go/v10/modules/core/exported"
 	ibckeeper "github.com/cosmos/ibc-go/v10/modules/core/keeper"
-	ibctm "github.com/cosmos/ibc-go/v10/modules/light-clients/07-tendermint"
 	ibctesting "github.com/cosmos/ibc-go/v10/testing"
 
 	ica "github.com/cosmos/ibc-go/v10/modules/apps/27-interchain-accounts"
@@ -571,8 +570,6 @@ func NewEvmos(
 		AddRoute(icahosttypes.SubModuleName, icaHostIBCModule)
 
 	app.IBCKeeper.SetRouter(ibcRouter)
-	storeProvider := app.IBCKeeper.ClientKeeper.GetStoreProvider()
-	tmLightClientModule := ibctm.NewLightClientModule(appCodec, storeProvider)
 
 	// create evidence keeper with router
 	evidenceKeeper := evidencekeeper.NewKeeper(
@@ -700,7 +697,6 @@ func NewEvmos(
 		// ibc modules
 		ibc.NewAppModule(app.IBCKeeper),
 		ica.NewAppModule(nil, &app.ICAHostKeeper),
-		ibctm.NewAppModule(tmLightClientModule),
 		// Ethermint app modules
 		evm.NewAppModule(app.EvmKeeper, app.AccountKeeper, app.GetSubspace(evmtypes.ModuleName)),
 		feemarket.NewAppModule(app.FeeMarketKeeper, app.GetSubspace(feemarkettypes.ModuleName)),
