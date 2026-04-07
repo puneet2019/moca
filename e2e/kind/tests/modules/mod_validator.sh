@@ -16,67 +16,34 @@ _validator_test_rpc_accessible() {
     done
 }
 
-_validator_wait_sync_status_single() {
-    local i="$1"
-    local stable_false_samples sync_poll_interval max_wait min_height_delta
-    stable_false_samples="${VALIDATOR_SYNC_STABLE_SAMPLES:-1}"
-    sync_poll_interval="${VALIDATOR_SYNC_POLL_INTERVAL:-2}"
-    max_wait="${VALIDATOR_SYNC_MAX_WAIT:-20}"
-    min_height_delta="${VALIDATOR_SYNC_MIN_HEIGHT_DELTA:-2}"
-
-    local consecutive_false=0
-    local initial_height latest_height voting_power deadline
-    initial_height=$(get_block_height_for_validator_index "$i")
-    latest_height="$initial_height"
-    voting_power="0"
-    deadline=$(($(date +%s) + max_wait))
-
-    while true; do
-        local status catching_up
-        status=$(kind_fetch_rpc_status "$i" 2>/dev/null || echo "{}")
-        catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up' 2>/dev/null || echo "true")
-        latest_height=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // "0"' 2>/dev/null || echo "0")
-        voting_power=$(echo "$status" | jq -r '.result.validator_info.voting_power // "0"' 2>/dev/null || echo "0")
-
-        if [ "$catching_up" = "false" ] && [ "$voting_power" -gt 0 ] 2>/dev/null; then
-            consecutive_false=$((consecutive_false + 1))
-            if [ "$consecutive_false" -ge "$stable_false_samples" ]; then
-                return 0
-            fi
-        else
-            consecutive_false=0
-        fi
-
-        if [ "$latest_height" -ge "$((initial_height + min_height_delta))" ] 2>/dev/null &&
-            [ "$voting_power" -gt 0 ] 2>/dev/null; then
-            log_warn "validator-${i} still reports catching_up=${catching_up}, but height advanced (${initial_height} -> ${latest_height}); continuing"
-            return 0
-        fi
-
-        if [ "$(date +%s)" -ge "$deadline" ]; then
-            if [ "$latest_height" -gt "$initial_height" ] 2>/dev/null &&
-                [ "$voting_power" -gt 0 ] 2>/dev/null; then
-                log_warn "validator-${i} did not report stable catching_up=false, but height advanced (${initial_height} -> ${latest_height}); continuing"
-                return 0
-            fi
-            log_error "validator-${i} did not progress enough (height ${initial_height} -> ${latest_height}, voting_power=${voting_power})"
-            return 1
-        fi
-
-        sleep "$sync_poll_interval"
-    done
-}
-
 _validator_test_sync_status() {
-    local n i rc
+    local n i
+    local poll_interval="${VALIDATOR_SYNC_POLL_INTERVAL:-2}"
+    local max_wait="${VALIDATOR_SYNC_MAX_WAIT:-30}"
     n=$(_validator_count)
-    rc=0
 
     for ((i = 0; i < n; i++)); do
-        _validator_wait_sync_status_single "$i" || rc=1
-    done
+        local deadline catching_up status
+        deadline=$(($(date +%s) + max_wait))
 
-    return "$rc"
+        while true; do
+            status=$(kind_fetch_rpc_status "$i" 2>/dev/null || echo "{}")
+            catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up' 2>/dev/null || echo "true")
+
+            if [ "$catching_up" = "false" ]; then
+                break
+            fi
+
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+                local height
+                height=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // "0"' 2>/dev/null || echo "0")
+                log_error "validator-${i} still catching up after ${max_wait}s (height: ${height})"
+                return 1
+            fi
+
+            sleep "$poll_interval"
+        done
+    done
 }
 
 _validator_test_voting_power() {
