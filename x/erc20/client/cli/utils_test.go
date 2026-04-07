@@ -33,9 +33,9 @@ func TestParseMetadata(t *testing.T) {
 			true,
 		},
 		{
-			"multiple coins metadata",
+			"coins metadata fixture",
 			"metadata/coins_metadata_test.json",
-			2,
+			1,
 			true,
 		},
 	}

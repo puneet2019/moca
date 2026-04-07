@@ -167,22 +167,21 @@ Where metadata.json contains (example):
 {
   "metadata": [
     {
-			"description": "The native staking and governance token of the Osmosis chain",
+			"description": "The native staking and governance token of the Evmos chain",
 			"denom_units": [
 				{
-						"denom": "ibc/<HASH>",
-						"exponent": 0,
-						"aliases": ["ibcuosmo"]
+						"denom": "amoca",
+						"exponent": 0
 				},
 				{
-						"denom": "OSMO",
-						"exponent": 6
+						"denom": "moca",
+						"exponent": 18
 				}
 			],
-			"base": "ibc/<HASH>",
-			"display": "OSMO",
-			"name": "Osmo",
-			"symbol": "OSMO"
+			"base": "amoca",
+			"display": "moca",
+			"name": "moca",
+			"symbol": "MOCA"
 		}
 	]
 }`, version.AppName,
@@ -233,7 +232,7 @@ Where metadata.json contains (example):
 
 	cmd.Flags().String(cli.FlagTitle, "", "title of proposal")
 	cmd.Flags().String(cli.FlagDescription, "", "description of proposal") //nolint:staticcheck,nolintlint
-	cmd.Flags().String(cli.FlagDeposit, "1aevmos", "deposit of proposal")
+	cmd.Flags().String(cli.FlagDeposit, "1amoca", "deposit of proposal")
 	if err := cmd.MarkFlagRequired(cli.FlagTitle); err != nil {
 		panic(err)
 	}
@@ -295,7 +294,7 @@ func NewRegisterERC20ProposalCmd() *cobra.Command {
 
 	cmd.Flags().String(cli.FlagTitle, "", "title of proposal")
 	cmd.Flags().String(cli.FlagDescription, "", "description of proposal") //nolint:staticcheck
-	cmd.Flags().String(cli.FlagDeposit, "1aevmos", "deposit of proposal")
+	cmd.Flags().String(cli.FlagDeposit, "1amoca", "deposit of proposal")
 	if err := cmd.MarkFlagRequired(cli.FlagTitle); err != nil {
 		panic(err)
 	}
@@ -357,7 +356,7 @@ func NewToggleTokenConversionProposalCmd() *cobra.Command {
 
 	cmd.Flags().String(cli.FlagTitle, "", "title of proposal")
 	cmd.Flags().String(cli.FlagDescription, "", "description of proposal") //nolint:staticcheck
-	cmd.Flags().String(cli.FlagDeposit, "1aevmos", "deposit of proposal")
+	cmd.Flags().String(cli.FlagDeposit, "1amoca", "deposit of proposal")
 	if err := cmd.MarkFlagRequired(cli.FlagTitle); err != nil {
 		panic(err)
 	}
