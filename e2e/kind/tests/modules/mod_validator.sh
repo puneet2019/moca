@@ -34,7 +34,7 @@ _validator_wait_sync_status_single() {
     while true; do
         local status catching_up
         status=$(kind_fetch_rpc_status "$i" 2>/dev/null || echo "{}")
-        catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up // "true"' 2>/dev/null || echo "true")
+        catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up' 2>/dev/null || echo "true")
         latest_height=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // "0"' 2>/dev/null || echo "0")
         voting_power=$(echo "$status" | jq -r '.result.validator_info.voting_power // "0"' 2>/dev/null || echo "0")
 

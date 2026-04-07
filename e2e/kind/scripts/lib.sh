@@ -134,7 +134,7 @@ kind_test_validator_block_production() {
     log_info "RPC endpoint reachable for ${name}"
 
     local catching_up initial_height voting_power chain_id
-    catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up // false')
+    catching_up=$(echo "$status" | jq -r '.result.sync_info.catching_up')
     initial_height=$(echo "$status" | jq -r '.result.sync_info.latest_block_height // "0"')
     voting_power=$(echo "$status" | jq -r '.result.validator_info.voting_power // "0"')
     chain_id=$(echo "$status" | jq -r '.result.node_info.network // "unknown"')
