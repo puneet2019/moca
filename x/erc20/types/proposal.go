@@ -24,7 +24,6 @@ import (
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	v1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
-	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 	evmostypes "github.com/evmos/evmos/v12/types"
 )
 
@@ -88,36 +87,9 @@ func (rtbp *RegisterCoinProposal) ValidateBasic() error {
 				ErrEVMDenom, "cannot register the EVM denomination %s", metadata.Base,
 			)
 		}
-
-		if err := ibctransfertypes.ValidateIBCDenom(metadata.Base); err != nil {
-			return err
-		}
-
-		if err := validateIBCVoucherMetadata(metadata); err != nil {
-			return err
-		}
 	}
 
 	return v1beta1.ValidateAbstract(rtbp)
-}
-
-// validateIBCVoucherMetadata checks that the coin metadata fields are consistent
-// with an IBC voucher denomination.
-func validateIBCVoucherMetadata(metadata banktypes.Metadata) error {
-	// Check ibc/ denom
-	denomSplit := strings.SplitN(metadata.Base, "/", 2)
-
-	if denomSplit[0] == metadata.Base && strings.TrimSpace(metadata.Base) != "" {
-		// Not IBC
-		return nil
-	}
-
-	if len(denomSplit) != 2 || denomSplit[0] != ibctransfertypes.DenomPrefix {
-		// NOTE: should be unaccessible (covered on ValidateIBCDenom)
-		return fmt.Errorf("invalid metadata. %s denomination should be prefixed with the format 'ibc/", metadata.Base)
-	}
-
-	return nil
 }
 
 // ValidateErc20Denom checks if a denom is a valid erc20/

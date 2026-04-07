@@ -45,9 +45,6 @@ func removeSpecialChars(str string) string {
 
 // recursively remove every invalid prefix
 func removeInvalidPrefixes(str string) string {
-	if strings.HasPrefix(str, "ibc/") {
-		return removeInvalidPrefixes(str[4:])
-	}
 	if strings.HasPrefix(str, "erc20/") {
 		return removeInvalidPrefixes(str[6:])
 	}

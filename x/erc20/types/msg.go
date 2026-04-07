@@ -24,8 +24,6 @@ import (
 	// txsigning "cosmossdk.io/x/tx/signing"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	errortypes "github.com/cosmos/cosmos-sdk/types/errors"
-
-	ibctransfertypes "github.com/cosmos/ibc-go/v10/modules/apps/transfer/types"
 	// erc20api "github.com/evmos/evmos/v12/api/evmos/erc20/v1"
 	"github.com/ethereum/go-ethereum/common"
 )
@@ -64,7 +62,7 @@ func (msg MsgConvertCoin) Type() string { return TypeMsgConvertCoin }
 // ValidateBasic runs stateless checks on the message
 func (msg MsgConvertCoin) ValidateBasic() error {
 	if err := ValidateErc20Denom(msg.Coin.Denom); err != nil {
-		if err := ibctransfertypes.ValidateIBCDenom(msg.Coin.Denom); err != nil {
+		if err := sdk.ValidateDenom(msg.Coin.Denom); err != nil {
 			return err
 		}
 	}
