@@ -186,8 +186,8 @@ _validator_test_on_chain_validator_count() {
 
 register_verify "Validator RPC accessible (all pods)"      _validator_test_rpc_accessible
 register_verify "Validator sync status healthy (all pods)" _validator_test_sync_status
+register_verify "Latest commit signed by all validators"      _validator_test_latest_commit_signed_by_all
 register_verify "Validator voting power healthy (all pods)"  _validator_test_voting_power
 register_verify "Validator block production (all pods)"       _validator_test_block_production
-register_verify "Latest commit signed by all validators"      _validator_test_latest_commit_signed_by_all
 register_verify "Validator heights consistent (spread <= 2)"  _validator_test_heights_consistent
 register_verify "On-chain staking validator count matches cluster" _validator_test_on_chain_validator_count
