@@ -7,7 +7,6 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"gopkg.in/yaml.v2"
 )
 
@@ -32,13 +31,6 @@ var (
 	KeySPConcurrentExitNum               = []byte("SPConcurrentExitNum")
 )
 
-var _ paramtypes.ParamSet = (*Params)(nil)
-
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
 // NewParams creates a new Params instance
 func NewParams(depositDenom string, gvgStakingPerBytes math.Int, maxGlobalVirtualGroupPerFamily uint32,
 	maxStoreSizePerFamily uint64, swapInValidityPeriod, spConcurrentExitNum math.Int,
@@ -61,18 +53,6 @@ func DefaultParams() Params {
 		DefaultMaxStoreSizePerFamily,
 		DefaultSwapInValidityPeriod,
 		DefaultSPConcurrentExitNum)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyDepositDenom, &p.DepositDenom, validateDepositDenom),
-		paramtypes.NewParamSetPair(KeyGVGStakingPerBytes, &p.GvgStakingPerBytes, validateGVGStakingPerBytes),
-		paramtypes.NewParamSetPair(KeyMaxGlobalVirtualGroupNumPerFamily, &p.MaxGlobalVirtualGroupNumPerFamily, validateMaxGlobalVirtualGroupNumPerFamily),
-		paramtypes.NewParamSetPair(KeyMaxStoreSizePerFamily, &p.MaxStoreSizePerFamily, validateMaxStoreSizePerFamily),
-		paramtypes.NewParamSetPair(KeySwapInValidityPeriod, &p.SwapInValidityPeriod, validateSwapInValidityPeriod),
-		paramtypes.NewParamSetPair(KeySPConcurrentExitNum, &p.SpConcurrentExitNum, validateSPConcurrentExitNum),
-	}
 }
 
 // Validate validates the set of params

@@ -8,7 +8,6 @@ import (
 
 	"cosmossdk.io/math"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"gopkg.in/yaml.v2"
 )
 
@@ -46,13 +45,6 @@ var (
 	KeyUpdatePriceDisallowedDays                  = []byte("UpdatePriceDisallowedDays")
 )
 
-var _ paramtypes.ParamSet = (*Params)(nil)
-
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
 // NewParams creates a new Params instance
 func NewParams(depositDenom string, minDeposit math.Int, secondarySpStorePriceRatio math.LegacyDec,
 	historicalBlocksForMaintenanceRecords, maintenanceDurationQuota, lockUpBlocksForMaintenance int64,
@@ -75,20 +67,6 @@ func DefaultParams() Params {
 	return NewParams(DefaultDepositDenom, DefaultMinDeposit, DefaultSecondarySpStorePriceRatio,
 		DefaultNumOfHistoricalBlocksForMaintenanceRecords, DefaultMaintenanceDurationQuota, DefaultNumOfLockUpBlocksForMaintenance,
 		DefaultUpdateGlobalPriceInterval, DefaultUpdatePriceDisallowedDays)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyDepositDenom, &p.DepositDenom, validateDepositDenom),
-		paramtypes.NewParamSetPair(KeyMinDeposit, &p.MinDeposit, validateMinDeposit),
-		paramtypes.NewParamSetPair(KeySecondarySpStorePriceRatio, &p.SecondarySpStorePriceRatio, validateSecondarySpStorePriceRatio),
-		paramtypes.NewParamSetPair(KeyNumOfHistoricalBlocksForMaintenanceRecords, &p.NumOfHistoricalBlocksForMaintenanceRecords, validateHistoricalBlocksForMaintenanceRecords),
-		paramtypes.NewParamSetPair(KeyMaintenanceDurationQuota, &p.MaintenanceDurationQuota, validateMaintenanceDurationQuota),
-		paramtypes.NewParamSetPair(KeyNumOfLockUpBlocksForMaintenance, &p.NumOfLockupBlocksForMaintenance, validateLockUpBlocksForMaintenance),
-		paramtypes.NewParamSetPair(KeyUpdateGlobalPriceInterval, &p.UpdateGlobalPriceInterval, validateUpdateGlobalPriceInterval),
-		paramtypes.NewParamSetPair(KeyUpdatePriceDisallowedDays, &p.UpdatePriceDisallowedDays, validateUpdatePriceDisallowedDays),
-	}
 }
 
 // Validate validates the set of params

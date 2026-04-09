@@ -21,7 +21,6 @@ import (
 
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core"
@@ -73,15 +72,6 @@ type EvmHooks interface {
 	// Must be called after tx is processed successfully, if return an error, the whole transaction is reverted.
 	PostTxProcessing(ctx sdk.Context, msg core.Message, receipt *ethtypes.Receipt) error
 }
-
-type (
-	LegacyParams = paramtypes.ParamSet
-	// Subspace defines an interface that implements the legacy Cosmos SDK x/params Subspace type.
-	// NOTE: This is used solely for migration of the Cosmos SDK x/params managed parameters.
-	Subspace interface {
-		GetParamSetIfExists(ctx sdk.Context, ps LegacyParams)
-	}
-)
 
 // EvmLogHandler defines the interface for evm log handler
 type EvmLogHandler interface {

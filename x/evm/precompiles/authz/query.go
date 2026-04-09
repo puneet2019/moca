@@ -198,12 +198,12 @@ func OutputsAuthorization(authorization authztypes.Authorization) string {
 	slashingtypes.RegisterInterfaces(interfaceRegistry)
 	govv1beta1.RegisterInterfaces(interfaceRegistry)
 	govv1.RegisterInterfaces(interfaceRegistry)
+	proposaltypes.RegisterInterfaces(interfaceRegistry)
 	crisistypes.RegisterInterfaces(interfaceRegistry)
 	types.RegisterInterfaces(interfaceRegistry)
 	feemarkettypes.RegisterInterfaces(interfaceRegistry)
 	erc20types.RegisterInterfaces(interfaceRegistry)
 	// Note: upgradetypes.RegisterInterfaces is not available in v0.50, interfaces are registered via module manager
-	proposaltypes.RegisterInterfaces(interfaceRegistry)
 	sptypes.RegisterInterfaces(interfaceRegistry)
 
 	mocaCodec := codec.NewProtoCodec(interfaceRegistry)
