@@ -6,11 +6,8 @@ import (
 	"math/big"
 
 	"cosmossdk.io/math"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"gopkg.in/yaml.v2"
 )
-
-var _ paramtypes.ParamSet = (*Params)(nil)
 
 var (
 	KeyChallengeCountPerBlock            = []byte("ChallengeCountPerBlock")
@@ -82,11 +79,6 @@ var (
 	DefaultSpSlashCountingWindow = uint64(43200) // about one day
 )
 
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
 // NewParams creates a new Params instance
 func NewParams(
 	challengeCountPerBlock uint64,
@@ -140,26 +132,6 @@ func DefaultParams() Params {
 		DefaultSpSlashMaxAmount,
 		DefaultSpSlashCountingWindow,
 	)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyChallengeCountPerBlock, &p.ChallengeCountPerBlock, validateChallengeCountPerBlock),
-		paramtypes.NewParamSetPair(KeyChallengeKeepAlivePeriod, &p.ChallengeKeepAlivePeriod, validateChallengeKeepAlivePeriod),
-		paramtypes.NewParamSetPair(KeySlashCoolingOffPeriod, &p.SlashCoolingOffPeriod, validateSlashCoolingOffPeriod),
-		paramtypes.NewParamSetPair(KeySlashAmountSizeRate, &p.SlashAmountSizeRate, validateSlashAmountSizeRate),
-		paramtypes.NewParamSetPair(KeySlashAmountMin, &p.SlashAmountMin, validateSlashAmountMin),
-		paramtypes.NewParamSetPair(KeySlashAmountMax, &p.SlashAmountMax, validateSlashAmountMax),
-		paramtypes.NewParamSetPair(KeyRewardValidatorRatio, &p.RewardValidatorRatio, validateRewardValidatorRatio),
-		paramtypes.NewParamSetPair(KeyRewardSubmitterRatio, &p.RewardSubmitterRatio, validateRewardSubmitterRatio),
-		paramtypes.NewParamSetPair(KeyRewardSubmitterThreshold, &p.RewardSubmitterThreshold, validateRewardSubmitterThreshold),
-		paramtypes.NewParamSetPair(KeyHeartbeatInterval, &p.HeartbeatInterval, validateHeartbeatInterval),
-		paramtypes.NewParamSetPair(KeyAttestationInturnInterval, &p.AttestationInturnInterval, validateAttestationInturnInterval),
-		paramtypes.NewParamSetPair(KeyAttestationKeptCount, &p.AttestationKeptCount, validateAttestationKeptCount),
-		paramtypes.NewParamSetPair(KeySpSlashMaxAmount, &p.SpSlashMaxAmount, validateSpSlashMaxAmount),
-		paramtypes.NewParamSetPair(KeySpSlashCountingWindow, &p.SpSlashCountingWindow, validateSpSlashCountingWindow),
-	}
 }
 
 // Validate validates the set of params

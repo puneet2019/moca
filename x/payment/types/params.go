@@ -6,10 +6,7 @@ import (
 	"strings"
 
 	"cosmossdk.io/math"
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
-
-var _ paramtypes.ParamSet = (*Params)(nil)
 
 var (
 	KeyReserveTime               = []byte("ReserveTime")
@@ -33,11 +30,6 @@ var (
 	DefaultWithdrawTimeLockThreshold        = math.NewIntFromBigInt(big.NewInt(1e18)).MulRaw(100) // 100 amoca
 	DefaultWithdrawTimeLockDuration  uint64 = 24 * 60 * 60                                        // 1 day
 )
-
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
 
 // NewParams creates a new Params instance
 func NewParams(
@@ -76,21 +68,6 @@ func DefaultParams() Params {
 		DefaultWithdrawTimeLockThreshold,
 		DefaultWithdrawTimeLockDuration,
 	)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyReserveTime, &p.VersionedParams.ReserveTime, validateReserveTime),
-		paramtypes.NewParamSetPair(KeyValidatorTaxRate, &p.VersionedParams.ValidatorTaxRate, validateValidatorTaxRate),
-		paramtypes.NewParamSetPair(KeyForcedSettleTime, &p.ForcedSettleTime, validateForcedSettleTime),
-		paramtypes.NewParamSetPair(KeyPaymentAccountCountLimit, &p.PaymentAccountCountLimit, validatePaymentAccountCountLimit),
-		paramtypes.NewParamSetPair(KeyMaxAutoSettleFlowCount, &p.MaxAutoSettleFlowCount, validateMaxAutoSettleFlowCount),
-		paramtypes.NewParamSetPair(KeyMaxAutoResumeFlowCount, &p.MaxAutoResumeFlowCount, validateMaxAutoResumeFlowCount),
-		paramtypes.NewParamSetPair(KeyFeeDenom, &p.FeeDenom, validateFeeDenom),
-		paramtypes.NewParamSetPair(KeyWithdrawTimeLockThreshold, &p.WithdrawTimeLockThreshold, validateWithdrawTimeLockThreshold),
-		paramtypes.NewParamSetPair(KeyWithdrawTimeLockDuration, &p.WithdrawTimeLockDuration, validateWithdrawTimeLockDuration),
-	}
 }
 
 // Validate validates the set of params

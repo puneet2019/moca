@@ -14,7 +14,6 @@ import (
 	distrtypes "github.com/cosmos/cosmos-sdk/x/distribution/types"
 	govv1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1"
 	govv1beta1 "github.com/cosmos/cosmos-sdk/x/gov/types/v1beta1"
-	proposaltypes "github.com/cosmos/cosmos-sdk/x/params/types/proposal"
 	slashingtypes "github.com/cosmos/cosmos-sdk/x/slashing/types"
 	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -203,7 +202,6 @@ func OutputsAuthorization(authorization authztypes.Authorization) string {
 	feemarkettypes.RegisterInterfaces(interfaceRegistry)
 	erc20types.RegisterInterfaces(interfaceRegistry)
 	// Note: upgradetypes.RegisterInterfaces is not available in v0.50, interfaces are registered via module manager
-	proposaltypes.RegisterInterfaces(interfaceRegistry)
 	sptypes.RegisterInterfaces(interfaceRegistry)
 
 	mocaCodec := codec.NewProtoCodec(interfaceRegistry)

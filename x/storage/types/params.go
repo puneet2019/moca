@@ -5,7 +5,6 @@ import (
 	"math"
 	"math/big"
 
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 	"gopkg.in/yaml.v2"
 )
 
@@ -153,13 +152,6 @@ var (
 	KeyBaseMirrorGroupAckRelayerFee      = []byte("BaseMirrorGroupAckRelayerFee")
 	KeyMaxLocalVirtualGroupNumPerBucket  = []byte("MaxLocalVirtualGroupNumPerBucket")
 )
-
-var _ paramtypes.ParamSet = (*Params)(nil)
-
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
 
 // NewParams creates a new Params instance
 func NewParams(
@@ -309,81 +301,6 @@ func DefaultParams() Params {
 		DefaultDiscontinueConfirmPeriod, DefaultDiscontinueDeletionMax, DefaultStalePolicyCleanupMax,
 		DefaultMinUpdateQuotaInterval, DefaultMaxLocalVirtualGroupNumPerBucket,
 	)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyMaxSegmentSize, &p.VersionedParams.MaxSegmentSize, validateMaxSegmentSize),
-		paramtypes.NewParamSetPair(KeyRedundantDataChunkNum, &p.VersionedParams.RedundantDataChunkNum, validateRedundantDataChunkNum),
-		paramtypes.NewParamSetPair(KeyRedundantParityChunkNum, &p.VersionedParams.RedundantParityChunkNum, validateRedundantParityChunkNum),
-		paramtypes.NewParamSetPair(KeyMinChargeSize, &p.VersionedParams.MinChargeSize, validateMinChargeSize),
-
-		paramtypes.NewParamSetPair(KeyMaxPayloadSize, &p.MaxPayloadSize, validateMaxPayloadSize),
-		paramtypes.NewParamSetPair(KeyMaxBucketsPerAccount, &p.MaxBucketsPerAccount, validateMaxBucketsPerAccount),
-		paramtypes.NewParamSetPair(KeyBscMirrorBucketRelayerFee, &p.BscMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBscMirrorBucketAckRelayerFee, &p.BscMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBscMirrorObjectRelayerFee, &p.BscMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBscMirrorObjectAckRelayerFee, &p.BscMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBscMirrorGroupRelayerFee, &p.BscMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBscMirrorGroupAckRelayerFee, &p.BscMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorBucketRelayerFee, &p.OpMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorBucketAckRelayerFee, &p.OpMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorObjectRelayerFee, &p.OpMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorObjectAckRelayerFee, &p.OpMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorGroupRelayerFee, &p.OpMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOpMirrorGroupAckRelayerFee, &p.OpMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorBucketRelayerFee, &p.PolygonMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorBucketAckRelayerFee, &p.PolygonMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorObjectRelayerFee, &p.PolygonMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorObjectAckRelayerFee, &p.PolygonMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorGroupRelayerFee, &p.PolygonMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyPolygonMirrorGroupAckRelayerFee, &p.PolygonMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorBucketRelayerFee, &p.ScrollMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorBucketAckRelayerFee, &p.ScrollMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorObjectRelayerFee, &p.ScrollMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorObjectAckRelayerFee, &p.ScrollMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorGroupRelayerFee, &p.ScrollMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyScrollMirrorGroupAckRelayerFee, &p.ScrollMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorBucketRelayerFee, &p.LineaMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorBucketAckRelayerFee, &p.LineaMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorObjectRelayerFee, &p.LineaMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorObjectAckRelayerFee, &p.LineaMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorGroupRelayerFee, &p.LineaMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyLineaMirrorGroupAckRelayerFee, &p.LineaMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorBucketRelayerFee, &p.MantleMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorBucketAckRelayerFee, &p.MantleMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorObjectRelayerFee, &p.MantleMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorObjectAckRelayerFee, &p.MantleMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorGroupRelayerFee, &p.MantleMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyMantleMirrorGroupAckRelayerFee, &p.MantleMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorBucketRelayerFee, &p.ArbitrumMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorBucketAckRelayerFee, &p.ArbitrumMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorObjectRelayerFee, &p.ArbitrumMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorObjectAckRelayerFee, &p.ArbitrumMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorGroupRelayerFee, &p.ArbitrumMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyArbitrumMirrorGroupAckRelayerFee, &p.ArbitrumMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorBucketRelayerFee, &p.OptimismMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorBucketAckRelayerFee, &p.OptimismMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorObjectRelayerFee, &p.OptimismMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorObjectAckRelayerFee, &p.OptimismMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorGroupRelayerFee, &p.OptimismMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyOptimismMirrorGroupAckRelayerFee, &p.OptimismMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorBucketRelayerFee, &p.BaseMirrorBucketRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorBucketAckRelayerFee, &p.BaseMirrorBucketAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorObjectRelayerFee, &p.BaseMirrorObjectRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorObjectAckRelayerFee, &p.BaseMirrorObjectAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorGroupRelayerFee, &p.BaseMirrorGroupRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyBaseMirrorGroupAckRelayerFee, &p.BaseMirrorGroupAckRelayerFee, validateRelayerFee),
-		paramtypes.NewParamSetPair(KeyDiscontinueCountingWindow, &p.DiscontinueCountingWindow, validateDiscontinueCountingWindow),
-		paramtypes.NewParamSetPair(KeyDiscontinueObjectMax, &p.DiscontinueObjectMax, validateDiscontinueObjectMax),
-		paramtypes.NewParamSetPair(KeyDiscontinueBucketMax, &p.DiscontinueBucketMax, validateDiscontinueBucketMax),
-		paramtypes.NewParamSetPair(KeyDiscontinueConfirmPeriod, &p.DiscontinueConfirmPeriod, validateDiscontinueConfirmPeriod),
-		paramtypes.NewParamSetPair(KeyDiscontinueDeletionMax, &p.DiscontinueDeletionMax, validateDiscontinueDeletionMax),
-		paramtypes.NewParamSetPair(KeyStalePolicyCleanupMax, &p.StalePolicyCleanupMax, validateStalePolicyCleanupMax),
-		paramtypes.NewParamSetPair(KeyMinUpdateQuotaInterval, &p.MinQuotaUpdateInterval, validateMinUpdateQuotaInterval),
-		paramtypes.NewParamSetPair(KeyMaxLocalVirtualGroupNumPerBucket, &p.MaxLocalVirtualGroupNumPerBucket, validateMaxLocalVirtualGroupNumPerBucket),
-	}
 }
 
 // Validate validates the set of params

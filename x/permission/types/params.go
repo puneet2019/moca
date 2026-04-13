@@ -2,8 +2,6 @@ package types
 
 import (
 	"fmt"
-
-	paramtypes "github.com/cosmos/cosmos-sdk/x/params/types"
 )
 
 const (
@@ -18,13 +16,6 @@ var (
 	KeyMaximumRemoveExpiredPoliciesIteration = []byte("MaximumRemoveExpiredPoliciesIteration")
 )
 
-var _ paramtypes.ParamSet = (*Params)(nil)
-
-// ParamKeyTable the param key table for launch module
-func ParamKeyTable() paramtypes.KeyTable {
-	return paramtypes.NewKeyTable().RegisterParamSet(&Params{})
-}
-
 // NewParams creates a new Params instance
 func NewParams(maximumStatementsNum, maximumGroupNum, maximumRemoveExpiredPoliciesIteration uint64) Params {
 	return Params{
@@ -37,15 +28,6 @@ func NewParams(maximumStatementsNum, maximumGroupNum, maximumRemoveExpiredPolici
 // DefaultParams returns a default set of parameters
 func DefaultParams() Params {
 	return NewParams(DefaultMaxStatementsNum, DefaultMaxPolicyGroupNum, DefaultMaximumRemoveExpiredPoliciesIteration)
-}
-
-// ParamSetPairs get the params.ParamSet
-func (p *Params) ParamSetPairs() paramtypes.ParamSetPairs {
-	return paramtypes.ParamSetPairs{
-		paramtypes.NewParamSetPair(KeyMaxStatementsNum, &p.MaximumStatementsNum, validateMaximumStatementsNum),
-		paramtypes.NewParamSetPair(KeyMaxPolicyGroupSize, &p.MaximumGroupNum, validateMaximumGroupNum),
-		paramtypes.NewParamSetPair(KeyMaximumRemoveExpiredPoliciesIteration, &p.MaximumRemoveExpiredPoliciesIteration, validateMaximumRemoveExpiredPoliciesIteration),
-	}
 }
 
 // Validate validates the set of params
