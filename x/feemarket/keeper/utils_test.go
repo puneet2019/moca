@@ -184,7 +184,7 @@ func setupChain(localMinGasPricesStr string, chainID string, minGasPrice sdkmath
 		baseapp.SetMinGasPrices(localMinGasPricesStr),
 	)
 
-	genesisState := app.NewTestGenesisState(newapp.AppCodec())
+	genesisState := app.NewTestGenesisState(newapp)
 	fmGenesis := types.DefaultGenesisState()
 	fmGenesis.Params.MinGasPrice = minGasPrice
 	fmGenesis.Params.BaseFee = sdkmath.NewIntFromBigInt(baseFee.BigInt())

@@ -93,7 +93,7 @@ func EthSetupWithDB(isCheckTx bool, patchGenesis func(*Evmos, simapp.GenesisStat
 	)
 	if !isCheckTx {
 		// init chain must be called to stop deliverState from being nil
-		genesisState := NewTestGenesisState(app.AppCodec())
+		genesisState := NewTestGenesisState(app)
 		if patchGenesis != nil {
 			genesisState = patchGenesis(app, genesisState)
 		}
@@ -120,7 +120,7 @@ func EthSetupWithDB(isCheckTx bool, patchGenesis func(*Evmos, simapp.GenesisStat
 }
 
 // NewTestGenesisState generate genesis state with single validator
-func NewTestGenesisState(codec codec.Codec) simapp.GenesisState {
+func NewTestGenesisState(app *Evmos) simapp.GenesisState {
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
 	if err != nil {
@@ -138,8 +138,13 @@ func NewTestGenesisState(codec codec.Codec) simapp.GenesisState {
 		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
 	}
 
-	genesisState := NewDefaultGenesisState()
-	return genesisStateWithValSet(codec, genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
+	// Start from each module's default genesis (e.g. distribution's InitialFeePool)
+	// instead of an empty map. Without this, modules whose InitGenesis is skipped
+	// when their key is absent (such as distribution) leave required collections
+	// unset, and downstream test helpers (staking-rewards.go etc.) trip over
+	// "FeePool not found" when staking hooks fire.
+	genesisState := simapp.GenesisState(app.DefaultGenesis())
+	return genesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
 }
 
 func genesisStateWithValSet(codec codec.Codec, genesisState simapp.GenesisState,
