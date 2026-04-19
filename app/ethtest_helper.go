@@ -22,16 +22,12 @@ import (
 	"cosmossdk.io/math"
 	"cosmossdk.io/simapp"
 	"github.com/cosmos/cosmos-sdk/baseapp"
-	"github.com/cosmos/cosmos-sdk/codec"
-	codectypes "github.com/cosmos/cosmos-sdk/codec/types"
-	cryptocodec "github.com/cosmos/cosmos-sdk/crypto/codec"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/secp256k1"
 	"github.com/cosmos/cosmos-sdk/testutil/mock"
 	simtestutil "github.com/cosmos/cosmos-sdk/testutil/sims"
 	authtypes "github.com/cosmos/cosmos-sdk/x/auth/types"
 	banktypes "github.com/cosmos/cosmos-sdk/x/bank/types"
 	"github.com/cosmos/cosmos-sdk/x/crisis"
-	stakingtypes "github.com/cosmos/cosmos-sdk/x/staking/types"
 
 	"cosmossdk.io/log"
 	abci "github.com/cometbft/cometbft/abci/types"
@@ -119,7 +115,25 @@ func EthSetupWithDB(isCheckTx bool, patchGenesis func(*Evmos, simapp.GenesisStat
 	return app
 }
 
-// NewTestGenesisState generate genesis state with single validator
+// NewTestGenesisState builds a single-validator genesis suitable for the EVM
+// test harness. It delegates to the standard GenesisStateWithValSet helper in
+// test_helpers.go so that auth/bank/staking/distribution/crisis/gov are all
+// seeded consistently with the same denom (utils.BaseDenom) and module
+// defaults that the production-style Setup() helper already uses. In
+// particular this guarantees distribution.InitialFeePool exists, which the
+// staking-rewards test helper depends on; without it
+// distrKeeper.GetFeePool returns "collections: not found ... FeePool" the
+// first time a staking hook fires.
+//
+// We deliberately start from an empty simapp.GenesisState (rather than
+// app.DefaultGenesis()) so that modules whose key is absent (evm, feemarket,
+// ibc, ...) keep their long-standing test behaviour of being skipped during
+// InitChain. EthSetup callers that need a real evm/feemarket genesis already
+// populate those keys explicitly via the patchGenesis callback.
+//
+// The result is returned as simapp.GenesisState (an alias of
+// map[string]json.RawMessage) so that EthSetup's patchGenesis callback
+// signature (and its many call sites) stays untouched.
 func NewTestGenesisState(app *Evmos) simapp.GenesisState {
 	privVal := mock.NewPV()
 	pubKey, err := privVal.GetPubKey()
@@ -135,80 +149,10 @@ func NewTestGenesisState(app *Evmos) simapp.GenesisState {
 	acc := authtypes.NewBaseAccount(senderPrivKey.PubKey().Address().Bytes(), senderPrivKey.PubKey(), 0, 0)
 	balance := banktypes.Balance{
 		Address: acc.GetAddress().String(),
-		Coins:   sdk.NewCoins(sdk.NewCoin(sdk.DefaultBondDenom, math.NewInt(100000000000000))),
+		Coins:   sdk.NewCoins(sdk.NewCoin(utils.BaseDenom, math.NewInt(100000000000000))),
 	}
 
-	// Start from each module's default genesis (e.g. distribution's InitialFeePool)
-	// instead of an empty map. Without this, modules whose InitGenesis is skipped
-	// when their key is absent (such as distribution) leave required collections
-	// unset, and downstream test helpers (staking-rewards.go etc.) trip over
-	// "FeePool not found" when staking hooks fire.
-	genesisState := simapp.GenesisState(app.DefaultGenesis())
-	return genesisStateWithValSet(app.AppCodec(), genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
-}
-
-func genesisStateWithValSet(codec codec.Codec, genesisState simapp.GenesisState,
-	valSet *cmtypes.ValidatorSet, genAccs []authtypes.GenesisAccount,
-	balances ...banktypes.Balance,
-) simapp.GenesisState {
-	// set genesis accounts
-	authGenesis := authtypes.NewGenesisState(authtypes.DefaultParams(), genAccs)
-	genesisState[authtypes.ModuleName] = codec.MustMarshalJSON(authGenesis)
-
-	validators := make([]stakingtypes.Validator, 0, len(valSet.Validators))
-	delegations := make([]stakingtypes.Delegation, 0, len(valSet.Validators))
-
-	bondAmt := sdk.DefaultPowerReduction
-
-	for _, val := range valSet.Validators {
-		pk, err := cryptocodec.FromTmPubKeyInterface(val.PubKey)
-		if err != nil {
-			panic(err)
-		}
-		pkAny, err := codectypes.NewAnyWithValue(pk)
-		if err != nil {
-			panic(err)
-		}
-		validator := stakingtypes.Validator{
-			OperatorAddress:   sdk.AccAddress(val.Address).String(),
-			ConsensusPubkey:   pkAny,
-			Jailed:            false,
-			Status:            stakingtypes.Bonded,
-			Tokens:            bondAmt,
-			DelegatorShares:   math.LegacyOneDec(),
-			Description:       stakingtypes.Description{},
-			UnbondingHeight:   int64(0),
-			UnbondingTime:     time.Unix(0, 0).UTC(),
-			Commission:        stakingtypes.NewCommission(math.LegacyZeroDec(), math.LegacyZeroDec(), math.LegacyZeroDec()),
-			MinSelfDelegation: math.ZeroInt(),
-		}
-		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), val.Address.String(), math.LegacyOneDec()))
-	}
-	// set validators and delegations
-	stakingGenesis := stakingtypes.NewGenesisState(stakingtypes.DefaultParams(), validators, delegations)
-	genesisState[stakingtypes.ModuleName] = codec.MustMarshalJSON(stakingGenesis)
-
-	totalSupply := sdk.NewCoins()
-	for _, b := range balances {
-		// add genesis acc tokens to total supply
-		totalSupply = totalSupply.Add(b.Coins...)
-	}
-
-	for range delegations {
-		// add delegated tokens to total supply
-		totalSupply = totalSupply.Add(sdk.NewCoin(sdk.DefaultBondDenom, bondAmt))
-	}
-
-	// add bonded amount to bonded pool module account
-	balances = append(balances, banktypes.Balance{
-		Address: authtypes.NewModuleAddress(stakingtypes.BondedPoolName).String(),
-		Coins:   sdk.Coins{sdk.NewCoin(sdk.DefaultBondDenom, bondAmt)},
-	})
-
-	// update total supply
-	bankGenesis := banktypes.NewGenesisState(banktypes.DefaultGenesisState().Params, balances, totalSupply, []banktypes.Metadata{}, []banktypes.SendEnabled{})
-	genesisState[banktypes.ModuleName] = codec.MustMarshalJSON(bankGenesis)
-
-	return genesisState
+	genesisState := evmostypes.GenesisState{}
+	genesisState = GenesisStateWithValSet(app, genesisState, valSet, []authtypes.GenesisAccount{acc}, balance)
+	return simapp.GenesisState(genesisState)
 }

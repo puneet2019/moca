@@ -173,6 +173,24 @@ func (o flaggedAppOptions) Get(k string) interface{} {
 	return nil
 }
 
+// AppOptionsWithSkipInvariants returns the given AppOptions wrapped so that
+// crisis.FlagSkipGenesisInvariants is forced to true. Test setups that bypass
+// EthSetup/Setup but still call InitChain on a real Evmos app should use this
+// to keep parity with the production-style helpers; otherwise
+// crisis.AssertInvariants fires during InitChain on partially-initialised
+// state (e.g. the staking DelegatorSharesInvariant trips on the bech32 vs hex
+// validator-address mismatch in genesisStateWithValSet's synthesised
+// delegations and panics with a nil-pointer dereference deep inside
+// LegacyDec.Add).
+func AppOptionsWithSkipInvariants(base servertypes.AppOptions) servertypes.AppOptions {
+	return flaggedAppOptions{
+		base: base,
+		overrides: map[string]interface{}{
+			crisis.FlagSkipGenesisInvariants: true,
+		},
+	}
+}
+
 func GenesisStateWithValSet(app *Evmos, genesisState evmostypes.GenesisState,
 	valSet *cmttypes.ValidatorSet, genAccs []authtypes.GenesisAccount,
 	balances ...banktypes.Balance,

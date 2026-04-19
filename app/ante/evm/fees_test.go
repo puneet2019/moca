@@ -11,7 +11,30 @@ import (
 	"github.com/evmos/evmos/v12/testutil"
 	testutiltx "github.com/evmos/evmos/v12/testutil/tx"
 	evmtypes "github.com/evmos/evmos/v12/x/evm/types"
+	feemarkettypes "github.com/evmos/evmos/v12/x/feemarket/types"
 )
+
+// stubFeeMarketKeeperNilMinGasPrice satisfies evm.FeeMarketKeeper while always
+// returning a feemarket Params whose MinGasPrice has a nil internal *big.Int
+// (i.e. sdkmath.LegacyDec{}). This exercises the IsNil() short-circuit added
+// to EthMinGasPriceDecorator: production-style genesis would normalise this to
+// a zero LegacyDec, but a number of test setups (and any code path that
+// constructs Params via the zero value) leave it unset, in which case
+// LegacyDec.IsZero -> (*big.Int).Sign panics on the nil pointer without the
+// guard.
+type stubFeeMarketKeeperNilMinGasPrice struct{}
+
+func (stubFeeMarketKeeperNilMinGasPrice) GetParams(_ sdk.Context) feemarkettypes.Params {
+	return feemarkettypes.Params{}
+}
+
+func (stubFeeMarketKeeperNilMinGasPrice) AddTransientGasWanted(_ sdk.Context, gasWanted uint64) (uint64, error) {
+	return gasWanted, nil
+}
+
+func (stubFeeMarketKeeperNilMinGasPrice) GetBaseFeeEnabled(_ sdk.Context) bool {
+	return false
+}
 
 var execTypes = []struct {
 	name      string
@@ -258,6 +281,42 @@ func (suite *AnteTestSuite) TestEthMinGasPriceDecorator() {
 			})
 		}
 	}
+}
+
+// TestEthMinGasPriceDecorator_NilMinGasPrice is a regression test for the
+// IsNil() short-circuit added to EthMinGasPriceDecorator.AnteHandle. It feeds
+// the decorator a stub FeeMarketKeeper that returns a zero-value Params (whose
+// MinGasPrice wraps a nil *big.Int) and asserts that the decorator forwards to
+// next() instead of dereferencing the nil pointer inside LegacyDec.IsZero.
+//
+// Without the guard, this test panics with:
+//
+//	runtime error: invalid memory address or nil pointer dereference
+//	math/big.(*Int).Sign(...)
+//	cosmossdk.io/math.LegacyDec.IsZero(...)
+//	app/ante/evm.EthMinGasPriceDecorator.AnteHandle(...)
+func (suite *AnteTestSuite) TestEthMinGasPriceDecorator_NilMinGasPrice() {
+	suite.SetupTest()
+
+	// Sanity-check that the stub really produces a nil-internal LegacyDec; if
+	// upstream ever changes the zero value of feemarkettypes.Params we want
+	// this regression test to fail loudly rather than silently passing.
+	suite.Require().True(
+		stubFeeMarketKeeperNilMinGasPrice{}.GetParams(suite.ctx).MinGasPrice.IsNil(),
+		"stub must produce a LegacyDec whose internal *big.Int is nil to exercise the guard",
+	)
+
+	dec := evmante.NewEthMinGasPriceDecorator(stubFeeMarketKeeperNilMinGasPrice{}, suite.app.EvmKeeper)
+
+	// The tx body is irrelevant: the IsNil short-circuit fires before any
+	// per-message logic runs. Use InvalidTx (which has no messages) to make
+	// that contract obvious - if the guard regresses, the panic will surface
+	// here instead of inside the for-range loop.
+	require := suite.Require()
+	require.NotPanics(func() {
+		_, err := dec.AnteHandle(suite.ctx, &testutiltx.InvalidTx{}, false, testutil.NextFn)
+		require.NoError(err, "decorator must short-circuit on nil MinGasPrice without invoking downstream validation")
+	})
 }
 
 func (suite *AnteTestSuite) TestEthMempoolFeeDecorator() {
