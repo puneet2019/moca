@@ -179,12 +179,12 @@ func setupChain(localMinGasPricesStr string, chainID string, minGasPrice sdkmath
 		app.DefaultNodeHome,
 		5,
 		servercfg.NewDefaultAppConfig(evmostypes.AttoEvmos),
-		simutils.NewAppOptionsWithFlagHome(app.DefaultNodeHome),
+		app.AppOptionsWithSkipInvariants(simutils.NewAppOptionsWithFlagHome(app.DefaultNodeHome)),
 		baseapp.SetChainID(chainID),
 		baseapp.SetMinGasPrices(localMinGasPricesStr),
 	)
 
-	genesisState := app.NewTestGenesisState(newapp.AppCodec())
+	genesisState := app.NewTestGenesisState(newapp)
 	fmGenesis := types.DefaultGenesisState()
 	fmGenesis.Params.MinGasPrice = minGasPrice
 	fmGenesis.Params.BaseFee = sdkmath.NewIntFromBigInt(baseFee.BigInt())

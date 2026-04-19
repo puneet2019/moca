@@ -66,8 +66,11 @@ func NewEthMempoolFeeDecorator(ek EVMKeeper) EthMempoolFeeDecorator {
 func (empd EthMinGasPriceDecorator) AnteHandle(ctx sdk.Context, tx sdk.Tx, simulate bool, next sdk.AnteHandler) (newCtx sdk.Context, err error) {
 	minGasPrice := empd.feesKeeper.GetParams(ctx).MinGasPrice
 
-	// short-circuit if min gas price is 0
-	if minGasPrice.IsZero() {
+	// short-circuit if min gas price is unset (nil) or zero. A LegacyDec wrapping
+	// a nil *big.Int otherwise panics inside IsZero -> *big.Int.Sign when the
+	// feemarket genesis is left to its zero value (e.g. test setups that do not
+	// explicitly enable the feemarket module).
+	if minGasPrice.IsNil() || minGasPrice.IsZero() {
 		return next(ctx, tx, simulate)
 	}
 

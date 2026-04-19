@@ -182,6 +182,15 @@ func (suite *AnteTestSuite) TestEthNonceVerificationDecorator() {
 }
 
 func (suite *AnteTestSuite) TestEthGasConsumeDecorator() {
+	// EthGasConsumeDecorator depends on the feemarket base fee being initialised
+	// (the test below asserts baseFee == InitialBaseFee = 1 gwei). Re-run the
+	// genesis with the feemarket module enabled and reset the flag afterwards
+	// so neighbouring suite cases keep their previous behaviour.
+	prevEnableFeemarket := suite.enableFeemarket
+	suite.enableFeemarket = true
+	defer func() { suite.enableFeemarket = prevEnableFeemarket }()
+	suite.SetupTest()
+
 	chainID := suite.app.EvmKeeper.ChainID()
 	dec := ethante.NewEthGasConsumeDecorator(suite.app.BankKeeper, suite.app.DistrKeeper, suite.app.EvmKeeper, config.DefaultMaxTxGasWanted)
 

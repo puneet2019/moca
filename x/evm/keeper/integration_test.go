@@ -183,12 +183,12 @@ func setupChain(localMinGasPricesStr string) {
 		app.DefaultNodeHome,
 		5,
 		servercfg.NewDefaultAppConfig(evmostypes.AttoEvmos),
-		simutils.NewAppOptionsWithFlagHome(app.DefaultNodeHome),
+		app.AppOptionsWithSkipInvariants(simutils.NewAppOptionsWithFlagHome(app.DefaultNodeHome)),
 		baseapp.SetChainID(chainID),
 		baseapp.SetMinGasPrices(localMinGasPricesStr),
 	)
 
-	genesisState := app.NewTestGenesisState(newapp.AppCodec())
+	genesisState := app.NewTestGenesisState(newapp)
 	genesisState[types.ModuleName] = newapp.AppCodec().MustMarshalJSON(types.DefaultGenesisState())
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", "  ")
