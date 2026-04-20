@@ -163,8 +163,9 @@ func GenesisStateWithValSet(app *Evmos, genesisState evmostypes.GenesisState,
 	for _, val := range valSet.Validators {
 		pk, _ := cryptocodec.FromTmPubKeyInterface(val.PubKey)
 		pkAny, _ := codectypes.NewAnyWithValue(pk)
+		valAddr := sdk.ValAddress(val.Address)
 		validator := stakingtypes.Validator{
-			OperatorAddress:   sdk.AccAddress(val.Address).String(),
+			OperatorAddress:   valAddr.String(),
 			ConsensusPubkey:   pkAny,
 			Jailed:            false,
 			Status:            stakingtypes.Bonded,
@@ -177,7 +178,7 @@ func GenesisStateWithValSet(app *Evmos, genesisState evmostypes.GenesisState,
 			MinSelfDelegation: math.ZeroInt(),
 		}
 		validators = append(validators, validator)
-		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), val.Address.String(), math.LegacyOneDec()))
+		delegations = append(delegations, stakingtypes.NewDelegation(genAccs[0].GetAddress().String(), valAddr.String(), math.LegacyOneDec()))
 
 	}
 	// set validators and delegations

@@ -464,17 +464,19 @@ func (suite *KeeperTestSuite) TestVerifyFeeAndDeductTxCostsFromUserBalance() {
 				} else {
 					gasTipCap = tc.gasTipCap
 				}
+				balanceBefore := new(big.Int).Set(vmdb.GetBalance(suite.address))
 				vmdb.AddBalance(suite.address, initBalance.BigInt())
 				balance := vmdb.GetBalance(suite.address)
-				suite.Require().Equal(balance, initBalance.BigInt())
+				suite.Require().Equal(new(big.Int).Add(balanceBefore, initBalance.BigInt()), balance)
 			} else {
 				if tc.gasPrice != nil {
 					gasPrice = tc.gasPrice.BigInt()
 				}
 
+				balanceBefore := new(big.Int).Set(vmdb.GetBalance(suite.address))
 				vmdb.AddBalance(suite.address, hundredInt.BigInt())
 				balance := vmdb.GetBalance(suite.address)
-				suite.Require().Equal(balance, hundredInt.BigInt())
+				suite.Require().Equal(new(big.Int).Add(balanceBefore, hundredInt.BigInt()), balance)
 			}
 			err := vmdb.Commit()
 			suite.Require().NoError(err, "Unexpected error while committing to vmdb: %d", err)

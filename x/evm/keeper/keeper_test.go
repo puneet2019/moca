@@ -4,8 +4,7 @@ import (
 	_ "embed"
 	"math/big"
 
-	sdk "github.com/cosmos/cosmos-sdk/types"
-	evmostypes "github.com/evmos/evmos/v12/types"
+	"github.com/evmos/evmos/v12/utils"
 	"github.com/evmos/evmos/v12/x/evm/keeper"
 	"github.com/evmos/evmos/v12/x/evm/statedb"
 	evmtypes "github.com/evmos/evmos/v12/x/evm/types"
@@ -28,14 +27,14 @@ func (suite *KeeperTestSuite) TestWithChainID() {
 		},
 		{
 			"success - Evmos mainnet chain ID",
-			"moca_5151-1",
-			1000001,
+			utils.MainnetChainID + "-1",
+			5252,
 			false,
 		},
 		{
 			"success - Evmos testnet chain ID",
-			"moca_5151-1",
-			1000000,
+			utils.TestnetChainID + "-1",
+			222888,
 			false,
 		},
 	}
@@ -90,44 +89,33 @@ func (suite *KeeperTestSuite) TestBaseFee() {
 
 func (suite *KeeperTestSuite) TestGetAccountStorage() {
 	testCases := []struct {
-		name     string
-		malleate func()
-		expRes   []int
+		name       string
+		malleate   func() common.Address
+		expStorage int
 	}{
 		{
 			"Only one account that's not a contract (no storage)",
-			func() {},
-			[]int{0},
+			func() common.Address {
+				return suite.address
+			},
+			0,
 		},
 		{
 			"Two accounts - one contract (with storage), one wallet",
-			func() {
+			func() common.Address {
 				supply := big.NewInt(100)
-				suite.DeployTestContract(suite.T(), suite.address, supply)
+				return suite.DeployTestContract(suite.T(), suite.address, supply)
 			},
-			[]int{2, 0},
+			2,
 		},
 	}
 
 	for _, tc := range testCases {
 		suite.Run(tc.name, func() {
 			suite.SetupTest()
-			tc.malleate()
-			i := 0
-			suite.app.AccountKeeper.IterateAccounts(suite.ctx, func(account sdk.AccountI) bool {
-				ethAccount, ok := account.(evmostypes.EthAccountI)
-				if !ok {
-					// ignore non EthAccounts
-					return false
-				}
-
-				addr := ethAccount.EthAddress()
-				storage := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, addr)
-
-				suite.Require().Equal(tc.expRes[i], len(storage))
-				i++
-				return false
-			})
+			addr := tc.malleate()
+			storage := suite.app.EvmKeeper.GetAccountStorage(suite.ctx, addr)
+			suite.Require().Equal(tc.expStorage, len(storage))
 		})
 	}
 }
