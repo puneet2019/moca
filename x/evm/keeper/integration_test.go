@@ -133,7 +133,7 @@ var _ = Describe("Feemarket", func() {
 // setupTestWithContext sets up a test chain with an example Cosmos send msg,
 // given a local (validator config) and a global (feemarket param) minGasPrice
 func setupTestWithContext(valMinGasPrice string, minGasPrice math.LegacyDec, baseFee math.Int) (*ethsecp256k1.PrivKey, banktypes.MsgSend) {
-	privKey, msg := setupTest(valMinGasPrice + s.denom)
+	privKey, msg := setupTest(valMinGasPrice + evmtypes.DefaultEVMDenom)
 	params := types.DefaultParams()
 	params.MinGasPrice = minGasPrice
 	err := s.app.FeeMarketKeeper.SetParams(s.ctx, params)
@@ -189,6 +189,7 @@ func setupChain(localMinGasPricesStr string) {
 
 	genesisState := app.NewTestGenesisState(newapp)
 	genesisState[types.ModuleName] = newapp.AppCodec().MustMarshalJSON(types.DefaultGenesisState())
+	genesisState[evmtypes.ModuleName] = newapp.AppCodec().MustMarshalJSON(evmtypes.DefaultGenesisState())
 
 	stateBytes, err := json.MarshalIndent(genesisState, "", "  ")
 	s.Require().NoError(err)
@@ -206,7 +207,7 @@ func setupChain(localMinGasPricesStr string) {
 	}
 
 	s.app = newapp
-	s.SetupApp(false, chainID)
+	s.SetupExistingApp(false, chainID)
 }
 
 func getNonce(addressBytes []byte) uint64 {

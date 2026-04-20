@@ -9,7 +9,12 @@ import (
 
 // GetCoinbaseAddress returns the block proposer's validator operator address.
 func (k Keeper) GetCoinbaseAddress(ctx sdk.Context, proposerAddress sdk.ConsAddress) (common.Address, error) {
-	validator, err := k.stakingKeeper.GetValidatorByConsAddr(ctx, GetProposerAddress(ctx, proposerAddress))
+	proposerAddress = GetProposerAddress(ctx, proposerAddress)
+	if len(proposerAddress) == 0 {
+		return common.Address{}, nil
+	}
+
+	validator, err := k.stakingKeeper.GetValidatorByConsAddr(ctx, proposerAddress)
 	if err != nil {
 		return common.Address{}, errorsmod.Wrapf(
 			stakingtypes.ErrNoValidatorFound,
@@ -19,8 +24,15 @@ func (k Keeper) GetCoinbaseAddress(ctx sdk.Context, proposerAddress sdk.ConsAddr
 		)
 	}
 
-	coinbase := common.BytesToAddress([]byte(validator.GetOperator()))
-	return coinbase, nil
+	valAddr, err := sdk.ValAddressFromHex(validator.GetOperator())
+	if err != nil {
+		return common.Address{}, errorsmod.Wrapf(
+			err,
+			"failed to convert validator operator address %s to bytes",
+			validator.GetOperator(),
+		)
+	}
+	return common.BytesToAddress(valAddr), nil
 }
 
 // GetProposerAddress returns current block proposer's address when provided proposer address is empty.

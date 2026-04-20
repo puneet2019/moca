@@ -115,15 +115,28 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 		msg      string
 		malleate func()
 		expPass  bool
+		expAddr  common.Address
 	}{
 		{
-			"validator not found",
+			"empty proposer address",
 			func() {
 				header := suite.ctx.BlockHeader()
 				header.ProposerAddress = []byte{}
 				suite.ctx = suite.ctx.WithBlockHeader(header)
 			},
+			true,
+			common.Address{},
+		},
+		{
+			"validator not found",
+			func() {
+				valConsAddr, _ := utiltx.NewAddrKey()
+				header := suite.ctx.BlockHeader()
+				header.ProposerAddress = valConsAddr.Bytes()
+				suite.ctx = suite.ctx.WithBlockHeader(header)
+			},
 			false,
+			common.Address{},
 		},
 		{
 			"success",
@@ -134,7 +147,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 				suite.Require().NoError(err)
 
 				validator := stakingtypes.Validator{
-					OperatorAddress: sdk.AccAddress(valOpAddr.Bytes()).String(),
+					OperatorAddress: sdk.ValAddress(valOpAddr.Bytes()).String(),
 					ConsensusPubkey: pkAny,
 				}
 
@@ -152,6 +165,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 				suite.Require().NotEmpty(suite.ctx.BlockHeader().ProposerAddress)
 			},
 			true,
+			valOpAddr,
 		},
 	}
 
@@ -164,7 +178,7 @@ func (suite *KeeperTestSuite) TestGetCoinbaseAddress() {
 			coinbase, err := suite.app.EvmKeeper.GetCoinbaseAddress(suite.ctx, sdk.ConsAddress(proposerAddress))
 			if tc.expPass {
 				suite.Require().NoError(err)
-				suite.Require().Equal(valOpAddr, coinbase)
+				suite.Require().Equal(tc.expAddr, coinbase)
 			} else {
 				suite.Require().Error(err)
 			}

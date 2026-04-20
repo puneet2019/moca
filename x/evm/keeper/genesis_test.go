@@ -67,7 +67,12 @@ func (suite *KeeperTestSuite) TestInitGenesis() {
 		{
 			"invalid account type",
 			func() {
-				acc := suite.app.AccountKeeper.NewAccountWithAddress(suite.ctx, address.Bytes())
+				acc := authtypes.NewBaseAccount(
+					address.Bytes(),
+					nil,
+					suite.app.AccountKeeper.NextAccountNumber(suite.ctx),
+					0,
+				)
 				suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 			},
 			&types.GenesisState{
@@ -166,6 +171,3 @@ func (suite *KeeperTestSuite) TestInitGenesis() {
 		})
 	}
 }
-
-
-

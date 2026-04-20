@@ -93,24 +93,16 @@ func (suite *KeeperTestSuite) SetupApp(checkTx bool, chainID string) {
 	suite.SetupAppWithT(checkTx, suite.T(), chainID)
 }
 
+func (suite *KeeperTestSuite) SetupExistingApp(checkTx bool, chainID string) {
+	suite.SetupExistingAppWithT(checkTx, suite.T(), chainID)
+}
+
 // SetupApp setup test environment, it uses`require.TestingT` to support both `testing.T` and `testing.B`.
 func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, chainID string) {
-	// account key, use a constant account to keep unit test deterministic.
-	ecdsaPriv, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
-	require.NoError(t, err)
-	priv := &ethsecp256k1.PrivKey{
-		Key: crypto.FromECDSA(ecdsaPriv),
-	}
-	suite.address = common.BytesToAddress(priv.PubKey().Address().Bytes())
-	suite.signer = utiltx.NewSigner(priv)
-
-	// consensus key
-	priv, err = ethsecp256k1.GenPrivKey()
-	require.NoError(t, err)
-	suite.consAddress = sdk.ConsAddress(priv.PubKey().Address())
-
-	suite.app = app.EthSetup(checkTx, func(app *app.Evmos, genesis simapp.GenesisState) simapp.GenesisState {
+	patchGenesis := func(app *app.Evmos, genesis simapp.GenesisState) simapp.GenesisState {
 		feemarketGenesis := feemarkettypes.DefaultGenesisState()
+		evmGenesis := evmtypes.DefaultGenesisState()
+
 		if suite.enableFeemarket {
 			feemarketGenesis.Params.EnableHeight = 1
 			feemarketGenesis.Params.NoBaseFee = false
@@ -119,7 +111,6 @@ func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, ch
 		}
 		genesis[feemarkettypes.ModuleName] = app.AppCodec().MustMarshalJSON(feemarketGenesis)
 		if !suite.enableLondonHF {
-			evmGenesis := evmtypes.DefaultGenesisState()
 			maxInt := sdkmath.NewInt(math.MaxInt64)
 			evmGenesis.Params.ChainConfig.LondonBlock = &maxInt
 			evmGenesis.Params.ChainConfig.ArrowGlacierBlock = &maxInt
@@ -127,15 +118,17 @@ func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, ch
 			evmGenesis.Params.ChainConfig.MergeNetsplitBlock = &maxInt
 			evmGenesis.Params.ChainConfig.ShanghaiBlock = &maxInt
 			evmGenesis.Params.ChainConfig.CancunBlock = &maxInt
-			genesis[evmtypes.ModuleName] = app.AppCodec().MustMarshalJSON(evmGenesis)
 		}
+		genesis[evmtypes.ModuleName] = app.AppCodec().MustMarshalJSON(evmGenesis)
 		return genesis
-	})
+	}
+
+	suite.app = app.EthSetup(checkTx, patchGenesis)
 
 	if suite.mintFeeCollector {
 		// mint some coin to fee collector
 		coins := sdk.NewCoins(sdk.NewCoin(evmtypes.DefaultEVMDenom, sdkmath.NewInt(int64(params.TxGas)-1)))
-		genesisState := app.NewTestGenesisState(suite.app)
+		genesisState := patchGenesis(suite.app, app.NewTestGenesisState(suite.app))
 		balances := []banktypes.Balance{
 			{
 				Address: suite.app.AccountKeeper.GetModuleAddress(authtypes.FeeCollectorName).String(),
@@ -166,6 +159,24 @@ func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, ch
 		}
 	}
 
+	suite.SetupExistingAppWithT(checkTx, t, chainID)
+}
+
+func (suite *KeeperTestSuite) SetupExistingAppWithT(checkTx bool, t require.TestingT, chainID string) {
+	// account key, use a constant account to keep unit test deterministic.
+	ecdsaPriv, err := crypto.HexToECDSA("b71c71a67e1177ad4e901695e1b4b9ee17ae16c6668d313eac2f96dbcda3f291")
+	require.NoError(t, err)
+	priv := &ethsecp256k1.PrivKey{
+		Key: crypto.FromECDSA(ecdsaPriv),
+	}
+	suite.address = common.BytesToAddress(priv.PubKey().Address().Bytes())
+	suite.signer = utiltx.NewSigner(priv)
+
+	// consensus key
+	priv, err = ethsecp256k1.GenPrivKey()
+	require.NoError(t, err)
+	suite.consAddress = sdk.ConsAddress(priv.PubKey().Address())
+
 	header := testutil.NewHeader(
 		1, time.Now().UTC(), chainID, suite.consAddress,
 		tmhash.Sum([]byte("app")), tmhash.Sum([]byte("validators")),
@@ -182,7 +193,7 @@ func (suite *KeeperTestSuite) SetupAppWithT(checkTx bool, t require.TestingT, ch
 	}
 	suite.app.AccountKeeper.SetAccount(suite.ctx, acc)
 
-	valAddr := sdk.AccAddress(suite.address.Bytes())
+	valAddr := sdk.ValAddress(suite.address.Bytes())
 	blsSecretKey, _ := bls.GenerateBlsKey()
 	blsPk := blsSecretKey.PublicKey().Marshal()
 	validator, err := stakingtypes.NewValidator(valAddr.String(), priv.PubKey(), stakingtypes.Description{}, valAddr.String(), valAddr.String(), valAddr.String(), blsPk)
