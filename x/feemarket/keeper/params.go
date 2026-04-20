@@ -29,7 +29,7 @@ func (k Keeper) GetParams(ctx sdk.Context) (params types.Params) {
 	store := ctx.KVStore(k.storeKey)
 	bz := store.Get(types.ParamsKey)
 	if len(bz) == 0 {
-		return params
+		return types.DefaultParams()
 	}
 
 	k.cdc.MustUnmarshal(bz, &params)
