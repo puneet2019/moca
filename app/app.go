@@ -1157,6 +1157,14 @@ func (app *Evmos) FinalizeBlock(req *abci.RequestFinalizeBlock) (res *abci.Respo
 	defer func() {
 		// TODO: Record the count along with the code and or reason so as to display
 		// in the transactions per second live dashboards.
+		//
+		// res can be nil when BaseApp.FinalizeBlock errors before producing a
+		// response (e.g. blocksync delivers a malformed block). Skip TPS
+		// accounting in that case so the deferred function does not nil-deref
+		// and mask the underlying error.
+		if res == nil {
+			return
+		}
 		for _, txRes := range res.TxResults {
 			if txRes.IsErr() {
 				app.tpsCounter.incrementFailure()

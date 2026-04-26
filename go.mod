@@ -299,7 +299,7 @@ replace (
 	// use cosmos fork of keyring
 	github.com/btcsuite/btcd => github.com/btcsuite/btcd v0.22.1
 	github.com/btcsuite/btcd/btcec/v2 => github.com/btcsuite/btcd/btcec/v2 v2.3.4
-	github.com/cometbft/cometbft => github.com/Mocachain/moca-cometbft v1.2.0-rc0.0.20260316054119-f85713e241f4
+	github.com/cometbft/cometbft => github.com/puneet2019/moca-cometbft v1.2.0-rc0.0.20260426065510-2c1ddc7e59e1
 	github.com/cometbft/cometbft-db => github.com/Mocachain/moca-cometbft-db v1.1.1-0.20260316053933-22256c4c85b3
 	// use Cosmos-SDK fork to enable Ledger functionality
 	github.com/cosmos/cosmos-sdk => github.com/mocachain/moca-cosmos-sdk v1.2.0-rc2
